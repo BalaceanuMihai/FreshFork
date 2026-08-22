@@ -1,58 +1,14 @@
 import Link from "next/link";
+import { Nav } from "@/components/marketplace/Nav";
 
 export default function Home() {
   return (
     <div className="flex flex-col flex-1">
-      <TopNav />
+      <Nav />
       <UtilityStrip />
       <Hero />
       <TrustStrip />
       <Footer />
-    </div>
-  );
-}
-
-function TopNav() {
-  return (
-    <nav className="flex items-center gap-10 px-16 py-5 bg-buttermilk">
-      <div className="flex items-center gap-2">
-        <span className="h-2.5 w-2.5 rounded-full bg-persimmon" aria-hidden />
-        <span className="font-display text-[22px] font-semibold tracking-tight text-forest">
-          FreshFork
-        </span>
-      </div>
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-forest px-3 py-1.5 text-xs font-medium text-forest">
-        Brooklyn, NY · 3 mi ⌄
-      </span>
-      <div className="flex flex-1 items-center justify-center gap-8 text-sm font-medium text-forest">
-        <NavTab label="Discover" active />
-        <NavTab label="Browse" />
-        <NavTab label="Orders" />
-        <NavTab label="Saved" />
-      </div>
-      <div className="flex items-center gap-5">
-        <Link href="#" className="text-sm font-medium text-forest">
-          Sign in
-        </Link>
-        <Link
-          href="#"
-          className="rounded-full bg-forest px-4 py-2.5 text-[13px] font-semibold text-buttermilk"
-        >
-          Cook with us
-        </Link>
-      </div>
-    </nav>
-  );
-}
-
-function NavTab({ label, active = false }: { label: string; active?: boolean }) {
-  return (
-    <div className="flex flex-col items-center gap-1.5">
-      <span className={active ? "font-semibold" : ""}>{label}</span>
-      <span
-        className={`h-0.5 w-5 rounded-full ${active ? "bg-persimmon" : "bg-transparent"}`}
-        aria-hidden
-      />
     </div>
   );
 }
