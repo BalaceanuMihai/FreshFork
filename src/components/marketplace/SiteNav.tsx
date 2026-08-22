@@ -1,4 +1,5 @@
 import { displayName, getViewer } from "@/lib/auth";
+import { features } from "@/lib/env";
 import { Nav } from "./Nav";
 
 /**
@@ -10,6 +11,7 @@ export async function SiteNav() {
 
   return (
     <Nav
+      mapboxReady={features.mapbox}
       viewer={
         viewer
           ? {

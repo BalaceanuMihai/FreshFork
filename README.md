@@ -8,9 +8,9 @@ North star: [shef.com](https://shef.com) — warm, trustworthy, food-photography
 
 - **Framework** — Next.js 16 (App Router) + React 19 + TypeScript
 - **Styling** — Tailwind CSS v4, custom design tokens (see `src/app/globals.css`)
-- **Backend** — Supabase (Postgres, Auth, Storage, Realtime) — _wired in Phase 1+_
-- **Payments** — Stripe Connect Express — _wired in Phase 4_
-- **Maps** — Mapbox (geocoding + tiles) — _wired in Phase 3_
+- **Backend** — Supabase (Postgres + PostGIS, Auth, Storage) — _wired_
+- **Payments** — Stripe Connect Express — _onboarding wired; charges in Phase 4_
+- **Maps** — Mapbox (geocoding + tiles) — _wired_
 - **Email** — Resend — _wired in Phase 4_
 - **Errors** — Sentry — _wired at Phase 6_
 - **Hosting** — Vercel
@@ -32,6 +32,34 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
+Supabase credentials are required from Phase 1 on. Stripe and Mapbox keys are
+optional — without them the payouts step and address search show an inline
+"not configured" message instead of failing.
+
+Stripe webhooks in local dev:
+
+```bash
+stripe listen --forward-to localhost:3000/api/webhooks/stripe
+```
+
+### Making someone an admin
+
+There is deliberately no UI for this: signup clamps the role to `customer` or
+`vendor`, and the `handle_new_user` database trigger clamps it again, so `admin`
+can never be self-assigned. Grant it by hand in the Supabase SQL editor:
+
+```sql
+update public.profiles set role = 'admin' where id = '<user-uuid>';
+```
+
+The admin queue then appears at `/dashboard/admin/vendors`.
+
+### Demo data
+
+`supabase/seed.sql` creates two live cooks with menus and pickup windows, for
+clicking through discovery without completing onboarding by hand. Paste it into
+the SQL editor; the header comment says how to remove it again.
+
 ## Design system
 
 Design lives in Figma → [FreshFork file](https://www.figma.com/design/blZqzMTB2SFuvmfMQqYbLZ/FreshFork).
@@ -51,11 +79,11 @@ Type: **Fraunces** (display), **Inter** (body/UI), **IBM Plex Mono** (price + sc
 
 ## Roadmap
 
-Phase 0 — scaffold + tokens · **← you are here**
-Phase 1 — Supabase Auth + roles
-Phase 2 — Vendor onboarding + menu CRUD + admin verification
-Phase 3 — Customer discovery + Mapbox
-Phase 4 — Ordering + Stripe Connect + email receipts
+Phase 0 — scaffold + tokens · **done**
+Phase 1 — Supabase Auth + roles · **done**
+Phase 2 — Vendor onboarding + menu CRUD + admin verification · **done**
+Phase 3 — Customer discovery + Mapbox · **done**
+Phase 4 — Ordering + Stripe charges + email receipts · **← you are here**
 Phase 5 — Reviews + reports
 Phase 6 — Polish + launch prep
 

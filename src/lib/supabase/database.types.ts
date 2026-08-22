@@ -271,6 +271,53 @@ export type Database = {
         Args: { p_vendor_id: string };
         Returns: Database["public"]["Enums"]["vendor_status"];
       };
+      discovery_stats: {
+        Args: {
+          p_lat?: number | null;
+          p_lng?: number | null;
+          p_radius_m?: number | null;
+        };
+        Returns: {
+          live_vendors: number;
+          live_dishes: number;
+          cuisines: number;
+        }[];
+      };
+      search_menu_items: {
+        Args: {
+          p_lat?: number | null;
+          p_lng?: number | null;
+          p_radius_m?: number | null;
+          p_cuisines?: string[] | null;
+          p_dietary?: string[] | null;
+          p_price_min_cents?: number | null;
+          p_price_max_cents?: number | null;
+          p_availability?: string | null;
+          p_pickup_windows?: string[] | null;
+          p_sort?: string | null;
+          p_limit?: number | null;
+          p_offset?: number | null;
+        };
+        Returns: {
+          menu_item_id: string;
+          vendor_id: string;
+          vendor_handle: string;
+          vendor_name: string;
+          cuisine: string | null;
+          dish_name: string;
+          description: string | null;
+          price_cents: number;
+          photo_path: string | null;
+          prep_note: string | null;
+          dietary_tags: string[];
+          allergens: string[];
+          quantity_available: number | null;
+          lat: number | null;
+          lng: number | null;
+          distance_m: number | null;
+          total_count: number;
+        }[];
+      };
     };
     Enums: {
       connect_status: "not_started" | "onboarding" | "restricted" | "complete";

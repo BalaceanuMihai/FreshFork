@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
+import { LocationBar } from "./LocationBar";
 import type { UserRole } from "@/lib/supabase/database.types";
 
 export type NavViewer = { name: string; role: UserRole };
@@ -14,8 +15,16 @@ const TABS = [
   { label: "Saved", href: "/saved" },
 ];
 
-export function Nav({ viewer = null }: { viewer?: NavViewer | null }) {
+export function Nav({
+  viewer = null,
+  mapboxReady = false,
+}: {
+  viewer?: NavViewer | null;
+  mapboxReady?: boolean;
+}) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const locationLabel = searchParams.get("loc");
 
   return (
     <nav className="flex items-center gap-10 border-b border-line px-16 py-5 bg-buttermilk">
@@ -25,9 +34,7 @@ export function Nav({ viewer = null }: { viewer?: NavViewer | null }) {
           FreshFork
         </span>
       </Link>
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-forest px-3 py-1.5 text-xs font-medium text-forest">
-        Brooklyn, NY · 3 mi ⌄
-      </span>
+      <LocationBar label={locationLabel} mapboxReady={mapboxReady} />
       <div className="flex flex-1 items-center justify-center gap-8 text-sm font-medium text-forest">
         {TABS.map((tab) => (
           <NavTab key={tab.href} {...tab} active={pathname === tab.href} />
