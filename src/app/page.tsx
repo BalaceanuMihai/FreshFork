@@ -1,10 +1,9 @@
-import Link from "next/link";
-import { Nav } from "@/components/marketplace/Nav";
+import { SiteNav } from "@/components/marketplace/SiteNav";
 
 export default function Home() {
   return (
     <div className="flex flex-col flex-1">
-      <Nav />
+      <SiteNav />
       <UtilityStrip />
       <Hero />
       <TrustStrip />

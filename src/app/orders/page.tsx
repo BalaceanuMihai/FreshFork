@@ -1,4 +1,5 @@
-import { Nav } from "@/components/marketplace/Nav";
+import { SiteNav } from "@/components/marketplace/SiteNav";
+import { requireViewer } from "@/lib/auth";
 import { Pill } from "@/components/marketplace/Pill";
 
 const TIMELINE: { label: string; time: string; state: "done" | "active" | "pending" }[] = [
@@ -64,10 +65,14 @@ const FAVOURITES = [
   { name: "Rosa M.", cuisine: "Oaxacan", orders: 2, gradient: "linear-gradient(180deg, #9e5938 0%, #47241a 100%)" },
 ];
 
-export default function OrdersPage() {
+export default async function OrdersPage() {
+  // Belt and braces: the proxy already gates /orders, but a page that shows
+  // order history should never render for an anonymous request.
+  await requireViewer("/orders");
+
   return (
     <div className="flex flex-col flex-1">
-      <Nav variant="account" />
+      <SiteNav />
       <PageHead />
       <div className="flex items-start gap-12 px-16 pb-24">
         <OrdersList />

@@ -3,6 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import type { UserRole } from "@/lib/supabase/database.types";
+
+export type NavViewer = { name: string; role: UserRole };
+
 const TABS = [
   { label: "Discover", href: "/" },
   { label: "Browse", href: "/browse" },
@@ -10,7 +14,7 @@ const TABS = [
   { label: "Saved", href: "/saved" },
 ];
 
-export function Nav({ variant = "guest" }: { variant?: "guest" | "account" }) {
+export function Nav({ viewer = null }: { viewer?: NavViewer | null }) {
   const pathname = usePathname();
 
   return (
@@ -29,18 +33,36 @@ export function Nav({ variant = "guest" }: { variant?: "guest" | "account" }) {
           <NavTab key={tab.href} {...tab} active={pathname === tab.href} />
         ))}
       </div>
-      {variant === "account" ? (
-        <div className="flex items-center gap-3">
-          <span className="text-sm font-medium text-forest">Sara P.</span>
-          <span className="h-8 w-8 rounded-full bg-sage" aria-hidden />
+      {viewer ? (
+        <div className="flex items-center gap-5">
+          {viewer.role === "vendor" ? (
+            <Link
+              href="/dashboard/vendor/menu"
+              className="rounded-full border border-sage px-3 py-1.5 font-mono text-[10px] tracking-[0.12em] text-forest"
+            >
+              COOK DASHBOARD
+            </Link>
+          ) : null}
+          {viewer.role === "admin" ? (
+            <Link
+              href="/dashboard/admin/vendors"
+              className="rounded-full border border-persimmon px-3 py-1.5 font-mono text-[10px] tracking-[0.12em] text-forest"
+            >
+              ADMIN
+            </Link>
+          ) : null}
+          <Link href="/account" className="flex items-center gap-3">
+            <span className="text-sm font-medium text-forest">{viewer.name}</span>
+            <span className="h-8 w-8 rounded-full bg-sage" aria-hidden />
+          </Link>
         </div>
       ) : (
         <div className="flex items-center gap-5">
-          <Link href="#" className="text-sm font-medium text-forest">
+          <Link href="/signin" className="text-sm font-medium text-forest">
             Sign in
           </Link>
           <Link
-            href="#"
+            href="/signup"
             className="rounded-full bg-forest px-4 py-2.5 text-[13px] font-semibold text-buttermilk"
           >
             Cook with us

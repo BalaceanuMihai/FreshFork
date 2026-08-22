@@ -23,6 +23,8 @@ function optional(value: string | undefined): string | undefined {
 export const publicEnv = {
   appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
   supabaseUrl: optional(process.env.NEXT_PUBLIC_SUPABASE_URL),
+  supabasePublishableKey: optional(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY),
+  // Legacy anon JWT — kept as a fallback for older .env.local files.
   supabaseAnonKey: optional(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
   mapboxToken: optional(process.env.NEXT_PUBLIC_MAPBOX_TOKEN),
   stripePublishableKey: optional(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY),
@@ -55,5 +57,18 @@ export const serverEnv = {
   },
   get resendFromEmail(): string {
     return required("RESEND_FROM_EMAIL", process.env.RESEND_FROM_EMAIL);
+  },
+} as const;
+
+/**
+ * Feature availability. Phase 2/3 surfaces call these so a missing third-party
+ * key degrades to a clear message instead of crashing the route.
+ */
+export const features = {
+  get stripeConnect(): boolean {
+    return Boolean(process.env.STRIPE_SECRET_KEY);
+  },
+  get mapbox(): boolean {
+    return Boolean(process.env.NEXT_PUBLIC_MAPBOX_TOKEN);
   },
 } as const;

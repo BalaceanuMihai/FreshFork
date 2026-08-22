@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Nav } from "@/components/marketplace/Nav";
+import { SiteNav } from "@/components/marketplace/SiteNav";
 import { Pill } from "@/components/marketplace/Pill";
 
 type BrowseDish = {
@@ -160,7 +160,7 @@ const ACTIVE_FILTERS = ["3 mi radius", "Ready today", "Under $20", "Vegetarian o
 export default function BrowsePage() {
   return (
     <div className="flex flex-col flex-1">
-      <Nav />
+      <SiteNav />
       <PageHead />
       <div className="border-b border-line" />
       <div className="flex items-start gap-12 px-16 py-8 pb-24">
