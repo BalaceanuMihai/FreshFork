@@ -30,8 +30,14 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# env files (never commit real secrets)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+# Keep .env.example tracked so contributors know what to set.
+!.env.example
 
 # vercel
 .vercel
@@ -40,5 +46,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Claude Code local config
+# supabase local dev (if `supabase start` used)
+supabase/.branches
+supabase/.temp
+
+# Claude Code local config (dev launch config + per-user settings)
 .claude/

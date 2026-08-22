@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# FreshFork
 
-## Getting Started
+A local food marketplace connecting home cooks and small food producers ("vendors") with nearby customers who order dishes for **pickup**.
 
-First, run the development server:
+North star: [shef.com](https://shef.com) — warm, trustworthy, food-photography-driven, with food-safety trust signals front and center.
+
+## Stack
+
+- **Framework** — Next.js 16 (App Router) + React 19 + TypeScript
+- **Styling** — Tailwind CSS v4, custom design tokens (see `src/app/globals.css`)
+- **Backend** — Supabase (Postgres, Auth, Storage, Realtime) — _wired in Phase 1+_
+- **Payments** — Stripe Connect Express — _wired in Phase 4_
+- **Maps** — Mapbox (geocoding + tiles) — _wired in Phase 3_
+- **Email** — Resend — _wired in Phase 4_
+- **Errors** — Sentry — _wired at Phase 6_
+- **Hosting** — Vercel
+
+See [`.claude/plans/i-want-to-build-soft-sonnet.md`](.claude/plans/i-want-to-build-soft-sonnet.md) for the full build plan.
+
+## Getting started
 
 ```bash
+# 1. Install
+npm install
+
+# 2. Copy env template and fill in what you need (Phase 0 only needs the app URL to run)
+cp .env.example .env.local
+
+# 3. Run
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Design system
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Design lives in Figma → [FreshFork file](https://www.figma.com/design/blZqzMTB2SFuvmfMQqYbLZ/FreshFork).
 
-## Learn More
+Tokens (kept in sync with Figma):
 
-To learn more about Next.js, take a look at the following resources:
+| Token         | Hex        | Role                         |
+| ------------- | ---------- | ---------------------------- |
+| `forest`      | `#0e2a22`  | Primary ink, nav, CTAs       |
+| `buttermilk`  | `#f7f4ec`  | Page background              |
+| `persimmon`   | `#e86a3c`  | Accent, verified dot         |
+| `sage`        | `#8fa687`  | Dietary tags, secondary      |
+| `straw`       | `#d4c4a6`  | Hairlines, chip borders      |
+| `card`        | `#fdfaf3`  | Card surface                 |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Type: **Fraunces** (display), **Inter** (body/UI), **IBM Plex Mono** (price + scarcity).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Roadmap
 
-## Deploy on Vercel
+Phase 0 — scaffold + tokens · **← you are here**
+Phase 1 — Supabase Auth + roles
+Phase 2 — Vendor onboarding + menu CRUD + admin verification
+Phase 3 — Customer discovery + Mapbox
+Phase 4 — Ordering + Stripe Connect + email receipts
+Phase 5 — Reviews + reports
+Phase 6 — Polish + launch prep
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Full detail in the build plan linked above.
