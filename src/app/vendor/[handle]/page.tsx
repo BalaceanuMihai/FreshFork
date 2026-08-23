@@ -100,11 +100,17 @@ function VendorHero({
         </h1>
 
         <div className="flex items-center gap-6 text-[13px] text-ink-70">
-          <span>{dishCount} dishes on the menu</span>
+          <span>
+            {dishCount} {dishCount === 1 ? "dish" : "dishes"} on the menu
+          </span>
           {vendor.pickup_windows.length > 0 ? (
             <>
               <span className="h-3.5 w-px bg-line" />
-              <span>{vendor.pickup_windows.length} pickup windows a week</span>
+              <span>
+                {vendor.pickup_windows.length}{" "}
+                {vendor.pickup_windows.length === 1 ? "pickup window" : "pickup windows"} a
+                week
+              </span>
             </>
           ) : null}
         </div>

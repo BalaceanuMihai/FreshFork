@@ -17,6 +17,50 @@ export type Database = {
   };
   public: {
     Tables: {
+      memberships: {
+        Row: {
+          cancel_at_period_end: boolean;
+          created_at: string;
+          current_period_end: string | null;
+          plan: Database["public"]["Enums"]["membership_plan"];
+          profile_id: string;
+          status: Database["public"]["Enums"]["membership_status"];
+          stripe_customer_id: string | null;
+          stripe_subscription_id: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          cancel_at_period_end?: boolean;
+          created_at?: string;
+          current_period_end?: string | null;
+          plan?: Database["public"]["Enums"]["membership_plan"];
+          profile_id: string;
+          status?: Database["public"]["Enums"]["membership_status"];
+          stripe_customer_id?: string | null;
+          stripe_subscription_id?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          cancel_at_period_end?: boolean;
+          created_at?: string;
+          current_period_end?: string | null;
+          plan?: Database["public"]["Enums"]["membership_plan"];
+          profile_id?: string;
+          status?: Database["public"]["Enums"]["membership_status"];
+          stripe_customer_id?: string | null;
+          stripe_subscription_id?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "memberships_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: true;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       profiles: {
         Row: {
           avatar_url: string | null;
@@ -263,7 +307,16 @@ export type Database = {
       };
     };
     Views: {
-      [_ in never]: never;
+      my_membership: {
+        Row: {
+          cancel_at_period_end: boolean | null;
+          current_period_end: string | null;
+          plan: Database["public"]["Enums"]["membership_plan"] | null;
+          profile_id: string | null;
+          status: Database["public"]["Enums"]["membership_status"] | null;
+        };
+        Relationships: [];
+      };
     };
     Functions: {
       is_admin: { Args: { uid?: string }; Returns: boolean };
@@ -321,6 +374,14 @@ export type Database = {
     };
     Enums: {
       connect_status: "not_started" | "onboarding" | "restricted" | "complete";
+      membership_plan: "free" | "plus";
+      membership_status:
+        | "active"
+        | "trialing"
+        | "past_due"
+        | "canceled"
+        | "incomplete"
+        | "unpaid";
       user_role: "customer" | "vendor" | "admin";
       vendor_status:
         | "draft"
@@ -344,6 +405,11 @@ export type ConnectStatus = Database["public"]["Enums"]["connect_status"];
 
 export type MenuItem = Database["public"]["Tables"]["menu_items"]["Row"];
 export type PickupWindow = Database["public"]["Tables"]["pickup_windows"]["Row"];
+
+export type Membership = Database["public"]["Tables"]["memberships"]["Row"];
+export type MyMembership = Database["public"]["Views"]["my_membership"]["Row"];
+export type MembershipPlan = Database["public"]["Enums"]["membership_plan"];
+export type MembershipStatus = Database["public"]["Enums"]["membership_status"];
 
 export const USER_ROLES = ["customer", "vendor", "admin"] as const;
 export const VENDOR_STATUSES = [

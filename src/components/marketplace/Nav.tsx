@@ -12,7 +12,7 @@ const TABS = [
   { label: "Discover", href: "/" },
   { label: "Browse", href: "/browse" },
   { label: "Orders", href: "/orders" },
-  { label: "Saved", href: "/saved" },
+  { label: "Pricing", href: "/pricing" },
 ];
 
 export function Nav({

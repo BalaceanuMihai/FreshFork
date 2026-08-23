@@ -4,6 +4,9 @@ import { SiteNav } from "@/components/marketplace/SiteNav";
 import { Pill } from "@/components/marketplace/Pill";
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { displayName, requireViewer } from "@/lib/auth";
+import { getMyMembership } from "@/lib/membership";
+import { openBillingPortal } from "@/lib/actions/membership";
+import { features } from "@/lib/env";
 
 export const metadata = { title: "Your account · FreshFork" };
 
@@ -32,6 +35,8 @@ export default async function AccountPage(props: PageProps<"/account">) {
   const copy = ROLE_COPY[role];
   const denied = params.denied === "1";
   const welcome = typeof params.welcome === "string";
+  const upgraded = params.upgraded === "1";
+  const membership = await getMyMembership();
 
   return (
     <div className="flex flex-1 flex-col">
@@ -48,6 +53,12 @@ export default async function AccountPage(props: PageProps<"/account">) {
         {welcome ? (
           <p className="mb-8 rounded-xl border border-sage bg-sage/15 px-4 py-3 text-sm text-forest">
             Welcome to FreshFork. Your account is live.
+          </p>
+        ) : null}
+        {upgraded ? (
+          <p className="mb-8 rounded-xl border border-sage bg-sage/15 px-4 py-3 text-sm text-forest">
+            You&apos;re on FreshFork Plus. Special offers will show up on
+            future orders.
           </p>
         ) : null}
 
@@ -86,10 +97,55 @@ export default async function AccountPage(props: PageProps<"/account">) {
           />
         </dl>
 
+        <div className="mt-8 flex flex-col gap-4 rounded-2xl border border-line bg-card p-6">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-col gap-1">
+              <span className="font-mono text-[11px] tracking-[0.12em] text-ink-50">
+                MEMBERSHIP
+              </span>
+              <span className="font-display text-[20px] font-semibold text-forest">
+                {membership?.plan === "plus" ? "FreshFork Plus" : "Free"}
+              </span>
+              {membership?.plan === "plus" && membership.current_period_end ? (
+                <span className="text-[13px] text-ink-50">
+                  {membership.cancel_at_period_end ? "Ends" : "Renews"}{" "}
+                  {new Date(membership.current_period_end).toLocaleDateString("en-US", {
+                    month: "long",
+                    day: "numeric",
+                  })}
+                </span>
+              ) : null}
+            </div>
+            <Pill tone={membership?.plan === "plus" ? "solid" : "outline"}>
+              {membership?.plan === "plus" ? "Plus" : "Free"}
+            </Pill>
+          </div>
+
+          {membership?.plan === "plus" ? (
+            features.membership ? (
+              <form action={openBillingPortal}>
+                <button
+                  type="submit"
+                  className="self-start rounded-full border border-line px-5 py-2.5 text-[13px] font-medium text-forest"
+                >
+                  Manage billing
+                </button>
+              </form>
+            ) : null
+          ) : (
+            <Link
+              href="/pricing"
+              className="self-start rounded-full bg-persimmon px-5 py-2.5 text-[13px] font-semibold text-buttermilk"
+            >
+              Upgrade to Plus →
+            </Link>
+          )}
+        </div>
+
         {copy.cta ? (
           <Link
             href={copy.cta.href}
-            className="mt-10 inline-flex rounded-full bg-forest px-7 py-3.5 text-sm font-semibold text-buttermilk"
+            className="mt-6 inline-flex rounded-full bg-forest px-7 py-3.5 text-sm font-semibold text-buttermilk"
           >
             {copy.cta.label}
           </Link>

@@ -9,7 +9,7 @@ North star: [shef.com](https://shef.com) — warm, trustworthy, food-photography
 - **Framework** — Next.js 16 (App Router) + React 19 + TypeScript
 - **Styling** — Tailwind CSS v4, custom design tokens (see `src/app/globals.css`)
 - **Backend** — Supabase (Postgres + PostGIS, Auth, Storage) — _wired_
-- **Payments** — Stripe Connect Express — _onboarding wired; charges in Phase 4_
+- **Payments** — Stripe Connect Express (vendor payouts) — _onboarding wired; order charges in Phase 4_. Stripe Billing (FreshFork Plus membership, $10/mo) — _wired_
 - **Maps** — Mapbox (geocoding + tiles) — _wired_
 - **Email** — Resend — _wired in Phase 4_
 - **Errors** — Sentry — _wired at Phase 6_
@@ -53,6 +53,16 @@ update public.profiles set role = 'admin' where id = '<user-uuid>';
 ```
 
 The admin queue then appears at `/dashboard/admin/vendors`.
+
+### FreshFork Plus (membership)
+
+A $10/mo subscription on the platform's own Stripe account (Billing, not
+Connect) — separate from vendor payouts. `/pricing` has the two plans;
+Checkout and the Billing Portal handle signup and self-serve cancellation.
+`memberships.plan`/`status`/`stripe_*` are written only by the
+`customer.subscription.*` webhook — never trust the Checkout success redirect.
+Needs `STRIPE_PLUS_PRICE_ID` (a recurring Price id) alongside the Stripe keys
+above.
 
 ### Demo data
 

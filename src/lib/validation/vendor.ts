@@ -44,7 +44,10 @@ export const certSchema = z.object({
 
 export const adminDecisionSchema = z.object({
   vendor_id: z.uuid("Unknown vendor."),
-  note: z.string().trim().max(600).optional().or(z.literal("")),
+  // The approve form has no note field at all, so FormData.get("note") comes
+  // back null rather than undefined — preprocess it to "" so z.string()
+  // doesn't reject a perfectly normal "no note" submission.
+  note: z.preprocess((v) => v ?? "", z.string().trim().max(600)),
 });
 
 /** Turn a business name into a URL-safe handle. */

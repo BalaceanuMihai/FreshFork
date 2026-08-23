@@ -44,6 +44,9 @@ export const serverEnv = {
   get stripeWebhookSecret(): string {
     return required("STRIPE_WEBHOOK_SECRET", process.env.STRIPE_WEBHOOK_SECRET);
   },
+  get stripePlusPriceId(): string {
+    return required("STRIPE_PLUS_PRICE_ID", process.env.STRIPE_PLUS_PRICE_ID);
+  },
   get platformFeeBps(): number {
     const raw = process.env.FRESHFORK_PLATFORM_FEE_BPS ?? "1200";
     const n = Number.parseInt(raw, 10);
@@ -61,12 +64,16 @@ export const serverEnv = {
 } as const;
 
 /**
- * Feature availability. Phase 2/3 surfaces call these so a missing third-party
- * key degrades to a clear message instead of crashing the route.
+ * Feature availability. Surfaces that depend on a third-party key check these
+ * first so a missing key degrades to a clear message instead of crashing the
+ * route.
  */
 export const features = {
   get stripeConnect(): boolean {
     return Boolean(process.env.STRIPE_SECRET_KEY);
+  },
+  get membership(): boolean {
+    return Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PLUS_PRICE_ID);
   },
   get mapbox(): boolean {
     return Boolean(process.env.NEXT_PUBLIC_MAPBOX_TOKEN);

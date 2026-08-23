@@ -4,15 +4,18 @@ import type Stripe from "stripe";
 import { getStripe } from "@/lib/stripe/client";
 import { createAdminClient } from "@/lib/supabase/server";
 import { connectStatusFor } from "@/lib/stripe/connect";
+import { membershipStatusFor, planForStatus } from "@/lib/stripe/membership-status";
 import { features, serverEnv } from "@/lib/env";
 
 /**
- * Stripe Connect webhook — the only writer of the `stripe_*` columns.
+ * One webhook endpoint for both Stripe products on this account:
+ * - Connect Express (`account.updated`) — vendor payout onboarding.
+ * - Billing (`customer.subscription.*`) — the FreshFork Plus membership.
  *
- * The onboarding return redirect is not trusted: a vendor could land back on
- * the app before Stripe has finished verifying, or never land back at all.
- * `account.updated` is authoritative, and flipping `stripe_connect_status` to
- * `complete` here is what lets the DB trigger derive `is_live`.
+ * Both write columns that RLS blocks the client from touching directly, so
+ * this route is the sole writer of `vendors.stripe_*` and all of
+ * `memberships`. Client redirects (Connect return URL, Checkout success URL)
+ * are never trusted to change status themselves.
  */
 export async function POST(request: NextRequest) {
   if (!features.stripeConnect) {
@@ -55,6 +58,62 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       // 500 so Stripe retries rather than dropping the state change.
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+  }
+
+  if (
+    event.type === "customer.subscription.created" ||
+    event.type === "customer.subscription.updated" ||
+    event.type === "customer.subscription.deleted"
+  ) {
+    const subscription = event.data.object as Stripe.Subscription;
+    const customerId =
+      typeof subscription.customer === "string"
+        ? subscription.customer
+        : subscription.customer.id;
+
+    const status = membershipStatusFor(subscription.status);
+    const periodEndUnix = subscription.items.data[0]?.current_period_end;
+    const admin = createAdminClient();
+
+    // Checkout sets subscription_data.metadata.profile_id, but a subscription
+    // created some other way (dashboard, dunning retry) might not carry it —
+    // fall back to the row seeded by stripe_customer_id when checkout started.
+    let profileId: string | undefined = subscription.metadata.profile_id;
+    if (!profileId) {
+      const { data: existing } = await admin
+        .from("memberships")
+        .select("profile_id")
+        .eq("stripe_customer_id", customerId)
+        .maybeSingle();
+      profileId = existing?.profile_id;
+    }
+
+    if (!profileId) {
+      // No way to attribute this subscription to a profile — nothing to do.
+      return NextResponse.json({ received: true, skipped: "no profile_id" });
+    }
+
+    // The row is seeded (with just stripe_customer_id) when checkout starts,
+    // so this is always an update, never a fresh insert — upsert only in case
+    // an event arrives out of order relative to that seed write.
+    const { error } = await admin.from("memberships").upsert(
+      {
+        profile_id: profileId,
+        stripe_customer_id: customerId,
+        stripe_subscription_id: subscription.id,
+        plan: planForStatus(status),
+        status,
+        current_period_end: periodEndUnix
+          ? new Date(periodEndUnix * 1000).toISOString()
+          : null,
+        cancel_at_period_end: subscription.cancel_at_period_end,
+      },
+      { onConflict: "profile_id" },
+    );
+
+    if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
   }
