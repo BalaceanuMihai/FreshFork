@@ -6,7 +6,10 @@ import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { getStripe } from "@/lib/stripe/client";
-import { connectStatusFor } from "@/lib/stripe/connect";
+import { assertOwnVendor } from "@/lib/vendor-access";
+import { consume } from "@/lib/rate-limit";
+import { captureException } from "@/lib/log";
+import { timezoneForCoordinates } from "@/lib/geo/timezone";
 import { features, publicEnv } from "@/lib/env";
 import {
   addressSchema,
@@ -78,22 +81,6 @@ async function uniqueHandle(businessName: string): Promise<string> {
   return `${base}-${Date.now().toString(36)}`;
 }
 
-/** Ownership re-check for anything that reaches for the admin client. */
-async function assertOwnVendor(vendorId: string): Promise<Vendor> {
-  const viewer = await requireRole("vendor");
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("vendors")
-    .select("*")
-    .eq("id", vendorId)
-    .maybeSingle();
-
-  if (!data || data.profile_id !== viewer.user.id) {
-    throw new Error("That listing is not yours.");
-  }
-  return data;
-}
-
 function nextStepAfter(step: (typeof STEPS)[number]): string {
   const index = STEPS.indexOf(step);
   return STEPS[Math.min(index + 1, STEPS.length - 1)];
@@ -150,6 +137,12 @@ export async function saveAddress(
   const vendor = await loadOrCreateVendor();
   const supabase = await createClient();
 
+  // Derived here, from the coordinate we already have, rather than asked for.
+  // Pickup windows are wall-clock times in the kitchen's own city, so the zone
+  // has to travel with the address — and a cook should not have to know what
+  // "Europe/Bucharest" means to sell a curry.
+  const timezone = timezoneForCoordinates(parsed.data.lat, parsed.data.lng);
+
   // PostGIS geography has no PostgREST literal form, so the point goes in as
   // WKT — Postgres casts it on the way into the geography column.
   const { error } = await supabase
@@ -160,6 +153,7 @@ export async function saveAddress(
       pickup_state: parsed.data.pickup_state || null,
       pickup_postal_code: parsed.data.pickup_postal_code || null,
       location: `SRID=4326;POINT(${parsed.data.lng} ${parsed.data.lat})`,
+      timezone,
       onboarding_step: nextStepAfter("address"),
     })
     .eq("id", vendor.id);
@@ -285,17 +279,27 @@ export async function startStripeOnboarding(
   const vendorId = String(formData.get("vendor_id") ?? "");
   const vendor = await assertOwnVendor(vendorId);
 
+  const limit = await consume("stripeOnboarding", vendor.id);
+  if (!limit.allowed) {
+    return { error: "Too many attempts. Give it a minute and try again." };
+  }
+
   const stripe = getStripe();
   let accountId = vendor.stripe_account_id;
 
   try {
     if (!accountId) {
-      const account = await stripe.accounts.create({
-        type: "express",
-        capabilities: { transfers: { requested: true } },
-        business_type: "individual",
-        metadata: { vendor_id: vendor.id, profile_id: vendor.profile_id },
-      });
+      const account = await stripe.accounts.create(
+        {
+          type: "express",
+          capabilities: { transfers: { requested: true } },
+          business_type: "individual",
+          metadata: { vendor_id: vendor.id, profile_id: vendor.profile_id },
+        },
+        // Without this, a double-submit or a retried action mints a second
+        // Express account and orphans the first one on our Stripe dashboard.
+        { idempotencyKey: `vendor-account-${vendor.id}` },
+      );
       accountId = account.id;
 
       // stripe_* columns are service-role-only by trigger, so this one write
@@ -328,6 +332,10 @@ export async function startStripeOnboarding(
     ) {
       throw error;
     }
+    // A cook stuck here cannot get paid, so this is worth an alert rather
+    // than only an inline message they might not report.
+    captureException(error, { where: "startStripeOnboarding", vendorId: vendor.id });
+
     return {
       error: error instanceof Error ? error.message : "Could not reach Stripe.",
     };
@@ -336,36 +344,6 @@ export async function startStripeOnboarding(
   return {};
 }
 
-/**
- * Pull the latest account state from Stripe for the "I'm back from Stripe"
- * page, and return the refreshed row.
- *
- * Returns rather than revalidates: this runs during the render of the payouts
- * page, where cache revalidation is not allowed and `getOwnVendor` would hand
- * back its request-cached (stale) copy.
- */
-export async function refreshStripeStatus(vendorId: string): Promise<Vendor | null> {
-  if (!features.stripeConnect) return null;
-
-  const vendor = await assertOwnVendor(vendorId);
-  if (!vendor.stripe_account_id) return vendor;
-
-  const account = await getStripe().accounts.retrieve(vendor.stripe_account_id);
-  const admin = createAdminClient();
-
-  const { data } = await admin
-    .from("vendors")
-    .update({
-      stripe_charges_enabled: Boolean(account.charges_enabled),
-      stripe_payouts_enabled: Boolean(account.payouts_enabled),
-      stripe_connect_status: connectStatusFor(account),
-    })
-    .eq("id", vendor.id)
-    .select("*")
-    .single();
-
-  return data ?? vendor;
-}
 
 export async function submitForReview(
   _prev: VendorFormState,

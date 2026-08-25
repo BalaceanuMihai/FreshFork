@@ -14,6 +14,8 @@ export type DishResult = {
   dish_name: string;
   description: string | null;
   price_cents: number;
+  /** The kitchen's currency — discovery spans several. */
+  currency: string;
   photo_path: string | null;
   prep_note: string | null;
   dietary_tags: string[];

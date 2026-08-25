@@ -5,6 +5,10 @@ import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/server";
 import { adminDecisionSchema } from "@/lib/validation/vendor";
+import { emailForProfile } from "@/lib/email/recipients";
+import { sendEmailInBackground } from "@/lib/email/send";
+import { vendorDecisionEmail } from "@/lib/email/templates";
+import { publicEnv } from "@/lib/env";
 import type { VendorStatus } from "@/lib/supabase/database.types";
 
 export type AdminFormState = { error?: string; ok?: string };
@@ -36,7 +40,7 @@ async function decide(
   }
 
   const admin = createAdminClient();
-  const { error } = await admin
+  const { data: vendor, error } = await admin
     .from("vendors")
     .update({
       status,
@@ -44,9 +48,37 @@ async function decide(
       reviewed_by: viewer.user.id,
       reviewed_at: new Date().toISOString(),
     })
-    .eq("id", parsed.data.vendor_id);
+    .eq("id", parsed.data.vendor_id)
+    .select("id, business_name, profile_id")
+    .maybeSingle();
 
   if (error) return { error: error.message };
+
+  // `reviewed_by` / `reviewed_at` only ever hold the *latest* decision, which
+  // is no use when somebody asks why a kitchen was suspended in March.
+  await admin.from("admin_actions").insert({
+    actor_id: viewer.user.id,
+    action: `vendor.${status}`,
+    subject_type: "vendor",
+    subject_id: parsed.data.vendor_id,
+    note: parsed.data.note || null,
+  });
+
+  // A cook whose listing was sent back for changes previously had no way of
+  // finding out except by logging in and noticing.
+  if (vendor && status !== "pending_review" && status !== "draft") {
+    const to = await emailForProfile(vendor.profile_id);
+    sendEmailInBackground(
+      to,
+      vendorDecisionEmail({
+        vendorName: vendor.business_name,
+        decision: status as "approved" | "changes_requested" | "suspended",
+        note: parsed.data.note || null,
+        dashboardUrl: `${publicEnv.appUrl}/dashboard/vendor`,
+      }),
+      { vendorId: vendor.id },
+    );
+  }
 
   revalidatePath("/dashboard/admin/vendors", "layout");
   revalidatePath("/browse");

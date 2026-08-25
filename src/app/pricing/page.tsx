@@ -1,7 +1,8 @@
-import { SiteNav } from "@/components/marketplace/SiteNav";
-import { PlanCards } from "@/components/membership/PlanCards";
+import Link from "next/link";
+
 import { getViewer } from "@/lib/auth";
 import { getMyMembership } from "@/lib/membership";
+import { startPlusCheckout } from "@/lib/actions/membership";
 import { features } from "@/lib/env";
 
 export const metadata = { title: "Pricing · FreshFork" };
@@ -20,51 +21,47 @@ export default async function PricingPage(props: PageProps<"/pricing">) {
   const canceled = params.canceled === "1";
 
   return (
-    <div className="flex flex-1 flex-col">
-      <SiteNav />
-      <section className="mx-auto w-full max-w-[880px] px-6 py-16">
-        <div className="flex items-center gap-2.5">
-          <span className="h-1.5 w-1.5 rounded-full bg-persimmon" aria-hidden />
-          <span className="font-mono text-[11px] tracking-[0.18em] text-forest">
-            PRICING
-          </span>
-        </div>
-        <h1 className="mt-5 font-display text-[46px] font-semibold leading-[1.06] tracking-[-0.02em] text-forest">
-          Free to browse. $10 a month to get the good stuff.
-        </h1>
-        <p className="mt-3 max-w-lg text-[16px] leading-[1.55] text-ink-70">
-          FreshFork Plus unlocks special offers on future orders, early access
-          when a new cook goes live nearby, and priority on pickup-window
-          requests. Cancel any time — no contracts.
-        </p>
+    <div>
+      <h1>Free to browse. $10 a month to get the good stuff.</h1>
+      <p>
+        FreshFork Plus unlocks special offers on future orders, early access when a new
+        cook goes live nearby, and priority on pickup-window requests. Cancel any time —
+        no contracts.
+      </p>
 
-        {error ? (
-          <p
-            role="alert"
-            className="mt-8 rounded-xl border border-persimmon/40 bg-persimmon/10 px-4 py-3 text-sm text-cocoa"
-          >
-            {error}
-          </p>
-        ) : canceled ? (
-          <p className="mt-8 rounded-xl border border-line bg-card px-4 py-3 text-sm text-ink-70">
-            Checkout was canceled — nothing was charged.
-          </p>
-        ) : null}
+      {error ? <p role="alert">{error}</p> : canceled ? <p>Checkout was canceled — nothing was charged.</p> : null}
 
-        <div className="mt-12">
-          <PlanCards
-            currentPlan={membership?.plan ?? null}
-            signedIn={Boolean(viewer)}
-            stripeReady={features.membership}
-          />
-        </div>
+      <h2>Free {membership?.plan === "free" || !membership ? "(current plan)" : ""}</h2>
+      <ul>
+        <li>Browse every verified cook nearby</li>
+        <li>Full menu, allergen, and dietary detail</li>
+        <li>Save your address for faster search</li>
+      </ul>
+      {!viewer ? <p><Link href="/signup">Create a free account</Link></p> : null}
 
-        <p className="mt-10 text-xs text-ink-50">
-          Prices in USD. FreshFork Plus is a subscription to the platform, not
-          a payment to any individual cook — dish prices are set by each cook
-          and unaffected by your plan.
-        </p>
-      </section>
+      <h2>FreshFork Plus — $10/mo {membership?.plan === "plus" ? "(current plan)" : ""}</h2>
+      <ul>
+        <li>Everything in Free</li>
+        <li>Special offers on future orders</li>
+        <li>Early access when a new cook goes live nearby</li>
+        <li>Priority pickup-window requests</li>
+      </ul>
+      {membership?.plan === "plus" ? (
+        <p>You&apos;re a member.</p>
+      ) : !features.membership ? (
+        <p>Payments aren&apos;t configured yet — check back soon.</p>
+      ) : viewer ? (
+        <form action={startPlusCheckout}>
+          <button type="submit">Get FreshFork Plus →</button>
+        </form>
+      ) : (
+        <p><Link href="/signin?next=/pricing">Sign in to subscribe</Link></p>
+      )}
+
+      <p>
+        Prices in USD. FreshFork Plus is a subscription to the platform, not a payment to
+        any individual cook — dish prices are set by each cook and unaffected by your plan.
+      </p>
     </div>
   );
 }

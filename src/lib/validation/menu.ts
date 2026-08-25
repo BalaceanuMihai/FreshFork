@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { ALLERGEN_VALUES, DIETARY_VALUES } from "@/lib/constants/taxonomy";
+import { parseMoneyToCents } from "@/lib/money";
 
 /** "$16", "16", "16.50" -> 1600 / 1650 */
 const priceToCents = z
@@ -8,17 +9,22 @@ const priceToCents = z
   .trim()
   .min(1, "Enter a price.")
   .transform((raw, ctx) => {
-    const cleaned = raw.replace(/[^0-9.]/g, "");
-    const value = Number.parseFloat(cleaned);
-    if (Number.isNaN(value) || value < 0) {
+    // Strict: stripping non-digits used to turn "-5" into $5 and "1.2.3" into
+    // $1.20, quietly listing a dish at a price the cook never typed.
+    const cents = parseMoneyToCents(raw);
+    if (cents === null) {
       ctx.addIssue({ code: "custom", message: "Enter a price like 16 or 16.50." });
       return z.NEVER;
     }
-    if (value > 1000) {
+    if (cents === 0) {
+      ctx.addIssue({ code: "custom", message: "Enter a price like 16 or 16.50." });
+      return z.NEVER;
+    }
+    if (cents > 100_000) {
       ctx.addIssue({ code: "custom", message: "That price looks too high." });
       return z.NEVER;
     }
-    return Math.round(value * 100);
+    return cents;
   });
 
 export const menuItemSchema = z.object({

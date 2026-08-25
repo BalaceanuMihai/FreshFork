@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
 import { createClient } from "@/lib/supabase/server";
+import { callerIp, consume } from "@/lib/rate-limit";
+import { checkPwnedPassword, pwnedPasswordMessage } from "@/lib/auth/pwned";
 import { publicEnv } from "@/lib/env";
 import type { UserRole } from "@/lib/supabase/database.types";
 
@@ -36,6 +38,19 @@ export async function signIn(
     return { error: "Enter your email and password." };
   }
 
+  // Two budgets: one per account, so a single address cannot be ground down by
+  // a distributed guesser, and one per source, so a single source cannot walk
+  // a list of addresses. Supabase applies its own limits on top.
+  const [byAccount, bySource] = await Promise.all([
+    consume("signIn", `email:${email}`),
+    consume("signIn", `ip:${await callerIp()}`),
+  ]);
+
+  if (!byAccount.allowed || !bySource.allowed) {
+    const wait = Math.max(byAccount.retryAfterSeconds, bySource.retryAfterSeconds);
+    return { error: `Too many attempts. Try again in ${wait} seconds.` };
+  }
+
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
@@ -62,6 +77,21 @@ export async function signUp(
   }
   if (password.length < 8) {
     return { error: "Passwords need at least 8 characters." };
+  }
+
+  // Each signup sends a confirmation email from our domain; unthrottled, this
+  // is a way to have us deliver spam to arbitrary addresses.
+  const limit = await consume("signUp", `ip:${await callerIp()}`);
+  if (!limit.allowed) {
+    return { error: "Too many sign-ups from here. Try again later." };
+  }
+
+  // Supabase's own breached-password check is a Pro-plan feature, but the
+  // corpus behind it is free to query. The password itself never leaves this
+  // process — only the first five characters of its SHA-1 digest do.
+  const pwned = await checkPwnedPassword(password);
+  if (pwned.status === "pwned") {
+    return { error: pwnedPasswordMessage(pwned.count) };
   }
 
   const supabase = await createClient();

@@ -46,7 +46,11 @@ export async function forwardGeocode(
   url.searchParams.set("access_token", token);
   url.searchParams.set("limit", "5");
   url.searchParams.set("types", "address,street,place,postcode,neighborhood");
-  url.searchParams.set("country", "us");
+  // Scoped to Europe (west of Iceland to the Urals, Crete/Cyprus up to
+  // Svalbard) rather than a country allow-list — cheaper to maintain than
+  // enumerating ~45 ISO country codes and doesn't need updating as the app
+  // expands to new European markets.
+  url.searchParams.set("bbox", "-25,34,45,71");
   if (sessionToken) url.searchParams.set("session_token", sessionToken);
 
   const response = await fetch(url, { cache: "no-store" });

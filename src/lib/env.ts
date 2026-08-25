@@ -61,6 +61,14 @@ export const serverEnv = {
   get resendFromEmail(): string {
     return required("RESEND_FROM_EMAIL", process.env.RESEND_FROM_EMAIL);
   },
+  /**
+   * Shared secret for /api/cron/*. Those routes run privileged maintenance
+   * (returning stock, deleting objects) and are reachable from the internet,
+   * so they authenticate on a bearer token rather than on a session.
+   */
+  get cronSecret(): string {
+    return required("CRON_SECRET", process.env.CRON_SECRET);
+  },
 } as const;
 
 /**
@@ -77,5 +85,16 @@ export const features = {
   },
   get mapbox(): boolean {
     return Boolean(process.env.NEXT_PUBLIC_MAPBOX_TOKEN);
+  },
+  /** Transactional email. Without it, orders still work — silently. */
+  get email(): boolean {
+    return Boolean(process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL);
+  },
+  /** Ordering needs Connect (to route money) and a webhook (to confirm it). */
+  get ordering(): boolean {
+    return Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_WEBHOOK_SECRET);
+  },
+  get cron(): boolean {
+    return Boolean(process.env.CRON_SECRET);
   },
 } as const;

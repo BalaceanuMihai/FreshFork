@@ -1,9 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { OnboardingShell } from "@/components/vendor/OnboardingShell";
-import { ReviewSubmit } from "@/components/vendor/ReviewSubmit";
-import { Pill } from "@/components/marketplace/Pill";
+import { ReviewSubmitForm } from "./ReviewSubmitForm";
 import { getOwnVendor } from "@/lib/vendors-data";
 import type { VendorStatus } from "@/lib/supabase/database.types";
 
@@ -17,9 +15,7 @@ const STATUS_COPY: Record<VendorStatus, string> = {
   suspended: "Suspended. See the note below.",
 };
 
-export default async function ReviewStepPage(
-  props: PageProps<"/dashboard/vendor/onboarding/review">,
-) {
+export default async function ReviewStepPage(props: PageProps<"/dashboard/vendor/onboarding/review">) {
   const params = await props.searchParams;
   const vendor = await getOwnVendor();
   if (!vendor) redirect("/dashboard/vendor/onboarding/business");
@@ -28,91 +24,45 @@ export default async function ReviewStepPage(
   const stripeGate = vendor.stripe_connect_status === "complete";
 
   return (
-    <OnboardingShell
-      vendor={vendor}
-      current="review"
-      title={vendor.is_live ? "You're live." : "Ready for review?"}
-      intro={
-        vendor.is_live
+    <div>
+      <h1>{vendor.is_live ? "You're live." : "Ready for review?"}</h1>
+      <p>
+        {vendor.is_live
           ? "Neighbors can find you in search right now."
-          : "A person on our team reads every application. Both gates below have to clear before your listing appears in search."
-      }
-    >
-      <div className="flex flex-col gap-8">
-        {params.submitted === "1" ? (
-          <p className="rounded-xl border border-sage bg-sage/15 px-4 py-3 text-sm text-forest">
-            Submitted. We&apos;ll email you when a reviewer has looked at it.
-          </p>
-        ) : null}
+          : "A person on our team reads every application. Both gates below have to clear."}
+      </p>
 
-        <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-line bg-line">
-          <Gate
-            label="Admin review"
-            state={adminGate ? "done" : "waiting"}
-            detail={STATUS_COPY[vendor.status]}
-          />
-          <Gate
-            label="Stripe payouts"
-            state={stripeGate ? "done" : "waiting"}
-            detail={
-              stripeGate
-                ? "Connected."
-                : "Not connected yet — you can do this before or after review."
-            }
-          />
-        </dl>
+      {params.submitted === "1" ? <p>Submitted. We&apos;ll email you when a reviewer has looked at it.</p> : null}
 
-        {vendor.status_note ? (
-          <div className="rounded-xl border border-persimmon/40 bg-persimmon/10 px-4 py-3">
-            <p className="font-mono text-[11px] tracking-[0.12em] text-cocoa">
-              FROM THE REVIEW TEAM
-            </p>
-            <p className="mt-2 text-sm text-cocoa">{vendor.status_note}</p>
-          </div>
-        ) : null}
+      <dl>
+        <dt>Admin review</dt>
+        <dd>
+          {adminGate ? "Cleared" : "Waiting"} — {STATUS_COPY[vendor.status]}
+        </dd>
+        <dt>Stripe payouts</dt>
+        <dd>
+          {stripeGate ? "Cleared" : "Waiting"} —{" "}
+          {stripeGate ? "Connected." : "Not connected yet — you can do this before or after review."}
+        </dd>
+      </dl>
 
-        <ReviewSubmit vendor={vendor} />
+      {vendor.status_note ? (
+        <div>
+          <p>From the review team</p>
+          <p>{vendor.status_note}</p>
+        </div>
+      ) : null}
 
-        {vendor.is_live ? (
-          <Link
-            href={`/vendor/${vendor.handle}`}
-            className="inline-flex self-start rounded-full bg-forest px-7 py-3.5 text-sm font-semibold text-buttermilk"
-          >
-            View your public page →
-          </Link>
-        ) : null}
+      <ReviewSubmitForm vendor={vendor} />
 
-        <Link
-          href="/dashboard/vendor/menu"
-          className="text-sm font-medium text-forest underline"
-        >
-          Manage your menu
-        </Link>
-      </div>
-    </OnboardingShell>
-  );
-}
-
-function Gate({
-  label,
-  state,
-  detail,
-}: {
-  label: string;
-  state: "done" | "waiting";
-  detail: string;
-}) {
-  return (
-    <div className="flex flex-col gap-2 bg-card px-6 py-5">
-      <dt className="font-mono text-[11px] tracking-[0.12em] text-ink-50">
-        {label.toUpperCase()}
-      </dt>
-      <dd className="flex flex-col gap-2">
-        <Pill tone={state === "done" ? "solid" : "outline"}>
-          {state === "done" ? "Cleared" : "Waiting"}
-        </Pill>
-        <span className="text-[13px] leading-[1.5] text-ink-70">{detail}</span>
-      </dd>
+      {vendor.is_live ? (
+        <p>
+          <Link href={`/vendor/${vendor.handle}`}>View your public page →</Link>
+        </p>
+      ) : null}
+      <p>
+        <Link href="/dashboard/vendor/menu">Manage your menu</Link>
+      </p>
     </div>
   );
 }

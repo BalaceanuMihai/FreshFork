@@ -2,12 +2,26 @@ import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
 import { milesToMetres } from "@/lib/format";
+import { log } from "@/lib/log";
 import { PAGE_SIZE, type DiscoveryFilters, type DishResult } from "@/lib/discovery-options";
+
+/**
+ * `failed` separates "nothing matched" from "the search broke".
+ *
+ * These used to collapse into the same empty array, which meant a database
+ * outage rendered as a polite "no dishes near you" — indistinguishable from a
+ * quiet Tuesday, and invisible in monitoring.
+ */
+export type DishSearch = {
+  results: DishResult[];
+  total: number;
+  failed: boolean;
+};
 
 export async function searchDishes(
   filters: DiscoveryFilters,
   limit = PAGE_SIZE,
-): Promise<{ results: DishResult[]; total: number }> {
+): Promise<DishSearch> {
   const supabase = await createClient();
 
   const { data, error } = await supabase.rpc("search_menu_items", {
@@ -25,24 +39,32 @@ export async function searchDishes(
     p_offset: (filters.page - 1) * limit,
   });
 
-  if (error || !data) return { results: [], total: 0 };
+  if (error) {
+    log.error("Dish search failed.", { error: error.message });
+    return { results: [], total: 0, failed: true };
+  }
 
-  const results = data as unknown as DishResult[];
-  return { results, total: Number(results[0]?.total_count ?? 0) };
+  const results = (data ?? []) as unknown as DishResult[];
+  return { results, total: Number(results[0]?.total_count ?? 0), failed: false };
 }
 
 export async function getDiscoveryStats(
   lat: number | null,
   lng: number | null,
   radiusMiles = 3,
-): Promise<{ vendors: number; dishes: number; cuisines: number }> {
+): Promise<{ vendors: number; dishes: number; cuisines: number; failed: boolean }> {
   const supabase = await createClient();
 
-  const { data } = await supabase.rpc("discovery_stats", {
+  const { data, error } = await supabase.rpc("discovery_stats", {
     p_lat: lat,
     p_lng: lng,
     p_radius_m: milesToMetres(radiusMiles),
   });
+
+  if (error) {
+    log.error("Discovery stats failed.", { error: error.message });
+    return { vendors: 0, dishes: 0, cuisines: 0, failed: true };
+  }
 
   const row = (
     data as unknown as
@@ -54,6 +76,7 @@ export async function getDiscoveryStats(
     vendors: Number(row?.live_vendors ?? 0),
     dishes: Number(row?.live_dishes ?? 0),
     cuisines: Number(row?.cuisines ?? 0),
+    failed: false,
   };
 }
 

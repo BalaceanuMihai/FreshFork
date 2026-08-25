@@ -1,10 +1,31 @@
 /** Display helpers shared by vendor, menu, and discovery UI. */
 
-export function formatPrice(cents: number): string {
-  const dollars = cents / 100;
-  return Number.isInteger(dollars)
-    ? `$${dollars}`
-    : `$${dollars.toFixed(2)}`;
+/**
+ * Money, in the currency it is actually charged in.
+ *
+ * FreshFork sells across Europe, so a kitchen in Warsaw prices in złoty and one
+ * in Stockholm in kronor. Every amount is integer minor units — cents, grosze,
+ * öre — and each of the currencies in use divides by 100, so the conversion is
+ * uniform. `currency` comes from the vendor (and, once placed, is frozen on the
+ * order), never from a platform-wide constant.
+ *
+ * Whole amounts drop the decimals: "€16", not "€16.00". Prices are set in round
+ * numbers far more often than not, and the zeros are noise on a menu.
+ */
+export function formatPrice(cents: number, currency: string = "eur"): string {
+  const major = cents / 100;
+
+  try {
+    return new Intl.NumberFormat("en-IE", {
+      style: "currency",
+      currency: currency.toUpperCase(),
+      minimumFractionDigits: Number.isInteger(major) ? 0 : 2,
+      maximumFractionDigits: 2,
+    }).format(major);
+  } catch {
+    // An unrecognised currency code should not blank out a price.
+    return `${major.toFixed(Number.isInteger(major) ? 0 : 2)} ${currency.toUpperCase()}`;
+  }
 }
 
 /** Metres to the "0.6 mi" form the designs use. */
