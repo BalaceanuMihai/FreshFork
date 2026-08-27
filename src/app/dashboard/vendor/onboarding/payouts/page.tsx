@@ -19,10 +19,16 @@ export default async function PayoutsStepPage(props: PageProps<"/dashboard/vendo
       : vendor;
 
   return (
-    <div>
-      <h1>Get paid for your cooking.</h1>
-      <p>Stripe runs the identity and bank checks. FreshFork takes a 12% platform fee on orders.</p>
-      <PayoutsForm vendor={current} stripeReady={features.stripeConnect} justReturned={justReturned} />
+    <div className="space-y-5">
+      <div>
+        <h1 className="font-display text-xl font-semibold">Get paid for your cooking.</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          Stripe runs the identity and bank checks. FreshFork takes a 12% platform fee on orders.
+        </p>
+      </div>
+      <div className="bg-card rounded-2xl border border-border p-5">
+        <PayoutsForm vendor={current} stripeReady={features.stripeConnect} justReturned={justReturned} />
+      </div>
     </div>
   );
 }

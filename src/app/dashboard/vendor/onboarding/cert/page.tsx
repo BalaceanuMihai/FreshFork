@@ -10,10 +10,16 @@ export default async function CertStepPage() {
   if (!vendor) redirect("/dashboard/vendor/onboarding/business");
 
   return (
-    <div>
-      <h1>Show us your paperwork.</h1>
-      <p>Verification is manual — stored privately, never shown on your public profile.</p>
-      <CertForm vendor={vendor} />
+    <div className="space-y-5">
+      <div>
+        <h1 className="font-display text-xl font-semibold">Show us your paperwork.</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          Verification is manual — stored privately, never shown on your public profile.
+        </p>
+      </div>
+      <div className="bg-card rounded-2xl border border-border p-5">
+        <CertForm vendor={vendor} />
+      </div>
     </div>
   );
 }

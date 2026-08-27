@@ -10,9 +10,11 @@ export default async function NewMenuItemPage() {
   if (!vendor) redirect("/dashboard/vendor/onboarding/business");
 
   return (
-    <div>
-      <h1>Add a dish</h1>
-      <MenuItemForm vendorId={vendor.id} />
+    <div className="max-w-lg mx-auto px-4 py-6 space-y-5">
+      <h1 className="font-display text-xl font-semibold">Add a dish</h1>
+      <div className="bg-card rounded-2xl border border-border p-5">
+        <MenuItemForm vendorId={vendor.id} />
+      </div>
     </div>
   );
 }

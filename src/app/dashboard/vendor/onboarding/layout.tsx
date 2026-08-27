@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { Check } from "lucide-react";
 
 import { getOwnVendor } from "@/lib/vendors-data";
+import { cn } from "@/lib/cn";
 import type { Vendor } from "@/lib/supabase/database.types";
 
 const STEPS = [
@@ -28,18 +30,32 @@ export default async function OnboardingLayout({ children }: LayoutProps<"/dashb
   const done = completedSteps(vendor);
 
   return (
-    <div>
-      <p>Set up your kitchen</p>
-      <ol>
-        {STEPS.map((step) => (
-          <li key={step.slug}>
-            <Link href={step.href}>
-              {done.has(step.slug) ? "✓ " : ""}
-              {step.label}
-            </Link>
-          </li>
-        ))}
-      </ol>
+    <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
+      <div>
+        <p className="text-sm font-medium text-muted-foreground mb-3">Set up your kitchen</p>
+        <ol className="flex items-center gap-1.5 overflow-x-auto pb-1">
+          {STEPS.map((step, i) => {
+            const isDone = done.has(step.slug);
+            return (
+              <li key={step.slug} className="flex items-center gap-1.5 shrink-0">
+                <Link
+                  href={step.href}
+                  className={cn(
+                    "flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium border transition-colors",
+                    isDone
+                      ? "border-green-200 bg-green-50 text-green-800"
+                      : "border-border text-muted-foreground hover:bg-secondary",
+                  )}
+                >
+                  {isDone ? <Check className="w-3 h-3" /> : <span className="w-3 h-3 text-center leading-3">{i + 1}</span>}
+                  {step.label}
+                </Link>
+                {i < STEPS.length - 1 ? <span className="w-3 h-px bg-border shrink-0" /> : null}
+              </li>
+            );
+          })}
+        </ol>
+      </div>
       {children}
     </div>
   );

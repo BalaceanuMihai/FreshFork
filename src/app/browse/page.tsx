@@ -1,51 +1,191 @@
 import Link from "next/link";
+import { ChevronDown, Filter, MapPin, Search, SlidersHorizontal, X } from "lucide-react";
 
+import { requireViewer } from "@/lib/auth";
 import { attachPhotoUrls, searchDishes } from "@/lib/discovery";
 import {
   parseFilters,
   PAGE_SIZE,
   PRICE_BUCKETS,
   AVAILABILITY_OPTIONS,
+  PICKUP_WINDOW_OPTIONS,
+  RADIUS_STEPS,
   type DiscoveryFilters,
-  type DishResult,
 } from "@/lib/discovery-options";
-import { CUISINES, dietaryLabel } from "@/lib/constants/taxonomy";
-import { formatDistance, formatPrice } from "@/lib/format";
+import { CUISINES, DIETARY_TAGS } from "@/lib/constants/taxonomy";
+import { DishCard } from "@/components/dish-card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { buttonClasses } from "@/components/ui/button";
+import { cn } from "@/lib/cn";
+import { MultiChipFilter } from "@/components/browse/multi-chip-filter";
+import { UseMyLocationButton } from "@/components/browse/use-my-location";
+import { LocationSearch } from "@/components/browse/location-search";
 
 export const metadata = { title: "Browse · FreshFork" };
 
+const FORM_ID = "browse-filters";
+
 export default async function BrowsePage(props: PageProps<"/browse">) {
+  await requireViewer("/browse");
   const params = await props.searchParams;
   const filters = parseFilters(params);
 
   const { results, total, failed } = await searchDishes(filters);
   const photos = await attachPhotoUrls(results);
 
+  const priceValue =
+    PRICE_BUCKETS.find((b) => b.min === filters.priceMinCents && b.max === filters.priceMaxCents)?.value ?? "";
+
+  const activeFilterCount =
+    filters.cuisines.length +
+    filters.dietary.length +
+    filters.pickupWindows.length +
+    (priceValue ? 1 : 0) +
+    (filters.availability ? 1 : 0);
+
   return (
-    <div>
-      <h1>Cooking near {filters.locationLabel ?? "your area"}</h1>
-      <p>
-        {total} {total === 1 ? "dish" : "dishes"}
-        {filters.lat !== null ? ` within ${filters.radiusMiles} mi` : " from verified cooks"}
-      </p>
-
-      <FilterForm filters={filters} />
-
-      {/* A broken search and an empty one used to render identically, so an
-          outage looked like a quiet Tuesday. */}
-      {failed ? (
-        <p role="alert">
-          Search isn&apos;t responding right now — this isn&apos;t the full list.
-          Try again in a moment.
+    <div className="max-w-5xl mx-auto px-4 py-6 space-y-5">
+      <div>
+        <h1 className="font-display text-2xl font-semibold flex items-center gap-2">
+          {filters.locationLabel ? (
+            <>
+              <MapPin className="w-5 h-5 text-primary" /> Cooking near {filters.locationLabel}
+            </>
+          ) : (
+            "Cooking near you"
+          )}
+        </h1>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          {failed
+            ? "Search isn't responding right now."
+            : `${total} ${total === 1 ? "dish" : "dishes"}${filters.lat !== null ? ` within ${filters.radiusMiles} mi` : " from verified cooks"}`}
         </p>
+      </div>
+
+      <form id={FORM_ID} method="get" action="/browse" className="space-y-3">
+        <div className="flex gap-2 flex-wrap sm:flex-nowrap">
+          <LocationSearch formId={FORM_ID} defaultValue={filters.locationLabel} />
+          <input type="hidden" name="lat" defaultValue={filters.lat ?? ""} />
+          <input type="hidden" name="lng" defaultValue={filters.lng ?? ""} />
+          <UseMyLocationButton formId={FORM_ID} />
+
+          <div className="relative shrink-0">
+            <select
+              name="radius"
+              defaultValue={filters.radiusMiles}
+              className="h-11 pl-3 pr-8 rounded-xl border border-border bg-card text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer font-medium"
+            >
+              {RADIUS_STEPS.map((mi) => (
+                <option key={mi} value={mi}>
+                  {mi} mi
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+          </div>
+
+          <div className="relative shrink-0">
+            <select
+              name="sort"
+              defaultValue={filters.sort}
+              className="h-11 pl-3 pr-8 rounded-xl border border-border bg-card text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer font-medium"
+            >
+              <option value="distance">Closest first</option>
+              <option value="price">Cheapest first</option>
+              <option value="newest">Newest first</option>
+            </select>
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+          </div>
+
+          <button type="submit" className={cn(buttonClasses("outline", "h-11 shrink-0 px-3"))}>
+            <Search className="w-4 h-4" />
+            <span className="hidden sm:inline">Search</span>
+          </button>
+        </div>
+
+        <details className="group">
+          <summary
+            className={cn(
+              "list-none h-9 px-3 rounded-xl border inline-flex items-center gap-1.5 text-sm transition-colors cursor-pointer w-fit",
+              activeFilterCount > 0 ? "border-primary bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <Filter className="w-4 h-4" />
+            Filters
+            {activeFilterCount > 0 ? (
+              <span className="bg-primary text-primary-foreground text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                {activeFilterCount}
+              </span>
+            ) : null}
+          </summary>
+
+          <div className="bg-card rounded-xl border border-border p-4 mt-3 space-y-4">
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Cuisine</p>
+              <MultiChipFilter
+                name="cuisine"
+                options={CUISINES.map((c) => ({ value: c, label: c }))}
+                defaultValue={filters.cuisines}
+              />
+            </div>
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Dietary</p>
+              <MultiChipFilter name="dietary" options={DIETARY_TAGS} defaultValue={filters.dietary} />
+            </div>
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Pickup window</p>
+              <MultiChipFilter name="pickup" options={PICKUP_WINDOW_OPTIONS} defaultValue={filters.pickupWindows} />
+            </div>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Price</p>
+                <PillRadio name="price" value={priceValue} options={[{ value: "", label: "Any price" }, ...PRICE_BUCKETS]} />
+              </div>
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Availability</p>
+                <PillRadio
+                  name="availability"
+                  value={filters.availability ?? ""}
+                  options={[{ value: "", label: "Any time" }, ...AVAILABILITY_OPTIONS]}
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 pt-1">
+              <button type="submit" className={buttonClasses("primary", "text-sm")}>
+                Apply filters
+              </button>
+              {activeFilterCount > 0 || filters.locationLabel ? (
+                <Link href="/browse" className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1">
+                  <X className="w-3.5 h-3.5" /> Clear all
+                </Link>
+              ) : null}
+            </div>
+          </div>
+        </details>
+      </form>
+
+      {failed ? (
+        <div className="bg-destructive/10 border border-destructive/20 text-destructive rounded-xl px-4 py-3 text-sm" role="alert">
+          Search isn&apos;t responding right now — this isn&apos;t the full list. Try again in a moment.
+        </div>
       ) : total === 0 ? (
-        <p>No dishes match — try widening the radius or clearing a filter.</p>
+        <EmptyState
+          icon={SlidersHorizontal}
+          title="No dishes match"
+          body="Try widening the radius or clearing a filter."
+          action={
+            <Link href="/browse" className={buttonClasses("outline")}>
+              Clear filters
+            </Link>
+          }
+        />
       ) : (
-        <ul>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {results.map((result) => (
-            <DishRow key={result.menu_item_id} result={result} photoUrl={photos.get(result.menu_item_id) ?? null} />
+            <DishCard key={result.menu_item_id} result={result} photoUrl={photos.get(result.menu_item_id) ?? null} />
           ))}
-        </ul>
+        </div>
       )}
 
       <Pagination filters={filters} total={total} />
@@ -53,110 +193,26 @@ export default async function BrowsePage(props: PageProps<"/browse">) {
   );
 }
 
-function FilterForm({ filters }: { filters: DiscoveryFilters }) {
-  const priceValue = PRICE_BUCKETS.find(
-    (b) => b.min === filters.priceMinCents && b.max === filters.priceMaxCents,
-  )?.value ?? "";
-
+function PillRadio({
+  name,
+  value,
+  options,
+}: {
+  name: string;
+  value: string;
+  options: readonly { value: string; label: string }[];
+}) {
   return (
-    <form method="get" action="/browse">
-      <fieldset>
-        <legend>Location</legend>
-        <label>
-          Label <input type="text" name="loc" defaultValue={filters.locationLabel ?? ""} />
+    <div className="flex flex-wrap gap-2">
+      {options.map((option) => (
+        <label key={option.value || "any"} className="cursor-pointer">
+          <input type="radio" name={name} value={option.value} defaultChecked={option.value === value} className="peer sr-only" />
+          <span className="px-3 py-1 rounded-full text-sm border border-border peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary peer-checked:font-medium hover:bg-secondary transition-colors block">
+            {option.label}
+          </span>
         </label>
-        <label>
-          Latitude <input type="number" step="any" name="lat" defaultValue={filters.lat ?? ""} />
-        </label>
-        <label>
-          Longitude <input type="number" step="any" name="lng" defaultValue={filters.lng ?? ""} />
-        </label>
-        <label>
-          Radius (mi)
-          <input type="number" step="0.5" min="0.5" max="25" name="radius" defaultValue={filters.radiusMiles} />
-        </label>
-      </fieldset>
-
-      <fieldset>
-        <legend>Cuisine (comma-separated)</legend>
-        <input type="text" name="cuisine" defaultValue={filters.cuisines.join(",")} list="cuisine-options" />
-        <datalist id="cuisine-options">
-          {CUISINES.map((c) => (
-            <option key={c} value={c} />
-          ))}
-        </datalist>
-      </fieldset>
-
-      <fieldset>
-        <legend>Dietary (comma-separated)</legend>
-        <input type="text" name="dietary" defaultValue={filters.dietary.join(",")} />
-      </fieldset>
-
-      <fieldset>
-        <legend>Availability</legend>
-        <select name="availability" defaultValue={filters.availability ?? ""}>
-          <option value="">Any</option>
-          {AVAILABILITY_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-      </fieldset>
-
-      <fieldset>
-        <legend>Price</legend>
-        <select name="price" defaultValue={priceValue}>
-          <option value="">Any</option>
-          {PRICE_BUCKETS.map((b) => (
-            <option key={b.value} value={b.value}>
-              {b.label}
-            </option>
-          ))}
-        </select>
-      </fieldset>
-
-      <fieldset>
-        <legend>Pickup window (comma-separated: lunch, dinner, late)</legend>
-        <input type="text" name="pickup" defaultValue={filters.pickupWindows.join(",")} />
-      </fieldset>
-
-      <fieldset>
-        <legend>Sort</legend>
-        <select name="sort" defaultValue={filters.sort}>
-          <option value="distance">Closest first</option>
-          <option value="price">Cheapest first</option>
-          <option value="newest">Newest first</option>
-        </select>
-      </fieldset>
-
-      <button type="submit">Apply filters</button>
-      <Link href="/browse">Clear all</Link>
-    </form>
-  );
-}
-
-function DishRow({ result, photoUrl }: { result: DishResult; photoUrl: string | null }) {
-  const prep =
-    result.prep_note ??
-    (result.quantity_available !== null ? `${result.quantity_available} left` : "Made to order");
-
-  return (
-    <li>
-      <Link href={`/vendor/${result.vendor_handle}`}>
-        {result.dish_name} — {result.vendor_name}
-      </Link>{" "}
-      · {formatPrice(result.price_cents, result.currency)} · {prep}
-      {result.distance_m !== null ? ` · ${formatDistance(result.distance_m)}` : ""}
-      {result.dietary_tags.length > 0 ? ` · ${result.dietary_tags.map(dietaryLabel).join(", ")}` : ""}
-      {photoUrl ? (
-        <>
-          {" "}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={photoUrl} alt="" width={48} height={48} />
-        </>
-      ) : null}
-    </li>
+      ))}
+    </div>
   );
 }
 
@@ -173,18 +229,24 @@ function Pagination({ filters, total }: { filters: DiscoveryFilters; total: numb
   if (filters.dietary.length) query.set("dietary", filters.dietary.join(","));
 
   return (
-    <p>
-      Pages:{" "}
+    <div className="flex items-center justify-center gap-1.5 pt-4">
       {Array.from({ length: pageCount }, (_, i) => i + 1).map((page) => {
         const next = new URLSearchParams(query);
         next.set("page", String(page));
+        const active = page === filters.page;
         return (
-          <Link key={page} href={`/browse?${next.toString()}`}>
-            {" "}
-            {page === filters.page ? `[${page}]` : page}{" "}
+          <Link
+            key={page}
+            href={`/browse?${next.toString()}`}
+            className={cn(
+              "w-9 h-9 flex items-center justify-center rounded-lg text-sm font-medium transition-colors",
+              active ? "bg-primary text-primary-foreground" : "hover:bg-secondary text-muted-foreground",
+            )}
+          >
+            {page}
           </Link>
         );
       })}
-    </p>
+    </div>
   );
 }

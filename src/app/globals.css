@@ -1,1 +1,68 @@
 @import "tailwindcss";
+
+:root {
+  --background: #faf7f2;
+  --foreground: #2c1810;
+  --card: #fffcf8;
+  --card-foreground: #2c1810;
+  --popover: #fffcf8;
+  --popover-foreground: #2c1810;
+  --primary: #c4622d;
+  --primary-foreground: #fffcf8;
+  --secondary: #f0e8da;
+  --secondary-foreground: #2c1810;
+  --muted: #ede5d8;
+  --muted-foreground: #7a6855;
+  --accent: #a8593d;
+  --accent-foreground: #fffcf8;
+  --destructive: #d4183d;
+  --destructive-foreground: #ffffff;
+  --border: rgba(44, 24, 16, 0.12);
+  --input-background: #f0e8da;
+  --ring: #c4622d;
+  --radius: 0.5rem;
+}
+
+@theme inline {
+  --font-sans: var(--font-dm-sans), ui-sans-serif, sans-serif;
+  --font-display: var(--font-fraunces), ui-serif, serif;
+  --font-mono: ui-monospace, monospace;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--border);
+  --color-input-background: var(--input-background);
+  --color-ring: var(--ring);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 12px);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background: var(--color-background);
+    color: var(--color-foreground);
+  }
+}

@@ -36,7 +36,11 @@ export const checkoutSchema = z.object({
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Choose a pickup date.")
     .refine((value) => !Number.isNaN(Date.parse(value)), "Choose a pickup date."),
-  note: z.string().trim().max(500, "Keep your note under 500 characters.").optional().or(z.literal("")),
+  // FormData.get() returns null (not undefined) for a field the form never
+  // rendered — a plain accept/ready/complete button has no note input at
+  // all — so this has to accept null, not just undefined, or every no-note
+  // submission is rejected as "Invalid input" before it reaches the RPC.
+  note: z.string().trim().max(500, "Keep your note under 500 characters.").nullish(),
 });
 
 export const orderIdSchema = z.object({
@@ -45,7 +49,7 @@ export const orderIdSchema = z.object({
 
 export const cancelOrderSchema = z.object({
   order_id: z.uuid("Unknown order."),
-  reason: z.string().trim().max(300).optional().or(z.literal("")),
+  reason: z.string().trim().max(300).nullish(),
 });
 
 /** Only the transitions a vendor is allowed to drive from their dashboard. */
@@ -54,7 +58,10 @@ export const VENDOR_TRANSITIONS = ["accepted", "ready", "completed", "rejected"]
 export const vendorTransitionSchema = z.object({
   order_id: z.uuid("Unknown order."),
   next: z.enum(VENDOR_TRANSITIONS, { message: "Unknown action." }),
-  note: z.string().trim().max(300).optional().or(z.literal("")),
+  // See the note on checkoutSchema — the accept/ready/complete forms submit
+  // no `note` field at all, which is `null` via FormData.get(), not
+  // `undefined`.
+  note: z.string().trim().max(300).nullish(),
 });
 
 export const refundOrderSchema = z.object({
@@ -63,7 +70,7 @@ export const refundOrderSchema = z.object({
   amount: z
     .string()
     .trim()
-    .optional()
+    .nullish()
     .transform((raw, ctx) => {
       if (!raw) return null;
       // Strict parsing matters more here than anywhere: a sloppy strip turned
@@ -75,5 +82,5 @@ export const refundOrderSchema = z.object({
       }
       return cents;
     }),
-  reason: z.string().trim().max(300).optional().or(z.literal("")),
+  reason: z.string().trim().max(300).nullish(),
 });

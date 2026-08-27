@@ -58,6 +58,15 @@ export function dietaryLabel(value: string): string {
   return DIETARY_LABELS.get(value) ?? value;
 }
 
+export const REPORT_REASON_OPTIONS = [
+  { value: "food_safety", label: "Food safety concern" },
+  { value: "allergen_error", label: "Wrong or missing allergen info" },
+  { value: "hygiene", label: "Hygiene concern" },
+  { value: "fraud", label: "Fraud or scam" },
+  { value: "offensive", label: "Offensive content" },
+  { value: "other", label: "Something else" },
+] as const;
+
 /** 0 = Sunday, matching `pickup_windows.day_of_week`. */
 export const WEEKDAYS = [
   { value: 0, label: "Sun" },

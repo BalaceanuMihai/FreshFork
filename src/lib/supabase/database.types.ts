@@ -114,6 +114,7 @@ export type Database = {
           pickup_city: string | null;
           pickup_postal_code: string | null;
           pickup_state: string | null;
+          country: string | null;
           profile_id: string;
           reviewed_at: string | null;
           reviewed_by: string | null;
@@ -148,6 +149,7 @@ export type Database = {
           pickup_city?: string | null;
           pickup_postal_code?: string | null;
           pickup_state?: string | null;
+          country?: string | null;
           profile_id: string;
           reviewed_at?: string | null;
           reviewed_by?: string | null;
@@ -182,6 +184,7 @@ export type Database = {
           pickup_city?: string | null;
           pickup_postal_code?: string | null;
           pickup_state?: string | null;
+          country?: string | null;
           profile_id?: string;
           reviewed_at?: string | null;
           reviewed_by?: string | null;

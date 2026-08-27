@@ -18,19 +18,19 @@ export default async function AdminSettingsPage() {
   const deploymentFee = envPlatformFeeBps();
 
   return (
-    <div>
-      <h1>Marketplace settings</h1>
-      <p>
-        These apply to every new order the moment they&apos;re saved. Existing
-        orders keep the fee they were placed under.
-      </p>
+    <div className="max-w-xl mx-auto px-4 py-6 space-y-5">
+      <div>
+        <h1 className="font-display text-2xl font-semibold">Marketplace settings</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          These apply to every new order the moment they&apos;re saved. Existing orders keep the fee they were placed under.
+        </p>
+      </div>
 
       {settings.platform_fee_bps !== deploymentFee ? (
-        <p role="status">
-          This deployment&apos;s <code>FRESHFORK_PLATFORM_FEE_BPS</code> is{" "}
-          {deploymentFee} bps, but the live commission is {settings.platform_fee_bps}{" "}
-          bps. The database value is the one being charged.
-        </p>
+        <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-xl px-4 py-3 text-sm" role="status">
+          This deployment&apos;s <code>FRESHFORK_PLATFORM_FEE_BPS</code> is {deploymentFee} bps, but the live commission
+          is {settings.platform_fee_bps} bps. The database value is the one being charged.
+        </div>
       ) : null}
 
       <SettingsForm settings={settings} />

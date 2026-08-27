@@ -10,6 +10,7 @@ import { assertOwnVendor } from "@/lib/vendor-access";
 import { consume } from "@/lib/rate-limit";
 import { captureException } from "@/lib/log";
 import { timezoneForCoordinates } from "@/lib/geo/timezone";
+import { currencyForCountry } from "@/lib/geo/currency";
 import { features, publicEnv } from "@/lib/env";
 import {
   addressSchema,
@@ -127,6 +128,7 @@ export async function saveAddress(
     pickup_city: formData.get("pickup_city"),
     pickup_state: formData.get("pickup_state"),
     pickup_postal_code: formData.get("pickup_postal_code"),
+    country_code: formData.get("country_code"),
     lat: formData.get("lat"),
     lng: formData.get("lng"),
   });
@@ -142,6 +144,11 @@ export async function saveAddress(
   // has to travel with the address — and a cook should not have to know what
   // "Europe/Bucharest" means to sell a curry.
   const timezone = timezoneForCoordinates(parsed.data.lat, parsed.data.lng);
+  const countryCode = parsed.data.country_code || null;
+  // Same reasoning, for money instead of the clock: a vendor should not have
+  // to know their own currency code, and startStripeOnboarding needs a real
+  // country on hand later — nothing else on this row carries one.
+  const currency = currencyForCountry(countryCode);
 
   // PostGIS geography has no PostgREST literal form, so the point goes in as
   // WKT — Postgres casts it on the way into the geography column.
@@ -152,6 +159,8 @@ export async function saveAddress(
       pickup_city: parsed.data.pickup_city || null,
       pickup_state: parsed.data.pickup_state || null,
       pickup_postal_code: parsed.data.pickup_postal_code || null,
+      country: countryCode,
+      currency,
       location: `SRID=4326;POINT(${parsed.data.lng} ${parsed.data.lat})`,
       timezone,
       onboarding_step: nextStepAfter("address"),
@@ -292,6 +301,15 @@ export async function startStripeOnboarding(
       const account = await stripe.accounts.create(
         {
           type: "express",
+          // Left unset, Stripe defaults this to the *platform* account's own
+          // country — every vendor became a Romanian Connect account
+          // regardless of where their kitchen actually was, wrong for
+          // identity verification, bank account matching, and tax
+          // reporting. `country` on the vendor is derived from the geocoded
+          // pickup address in saveAddress(); a vendor who somehow reaches
+          // this step without it (address step skipped, or predates this
+          // column) still gets a sane default rather than an inherited one.
+          country: vendor.country ?? "DE",
           capabilities: { transfers: { requested: true } },
           business_type: "individual",
           metadata: { vendor_id: vendor.id, profile_id: vendor.profile_id },
