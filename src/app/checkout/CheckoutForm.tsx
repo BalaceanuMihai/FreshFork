@@ -1,8 +1,12 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { Clock } from "lucide-react";
 
 import { startCheckout, type OrderFormState } from "@/lib/actions/orders";
+import { Textarea } from "@/components/ui/field";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/cn";
 import type { PickupSlot } from "@/lib/supabase/database.types";
 
 /**
@@ -25,10 +29,7 @@ export function CheckoutForm({
   disabled: boolean;
   timezone: string;
 }) {
-  const [state, formAction, pending] = useActionState<OrderFormState, FormData>(
-    startCheckout,
-    {},
-  );
+  const [state, formAction, pending] = useActionState<OrderFormState, FormData>(startCheckout, {});
   const [selected, setSelected] = useState(0);
 
   const chosen = slots[selected] ?? slots[0];
@@ -47,41 +48,58 @@ export function CheckoutForm({
     }).format(new Date(slot.starts_at));
 
   return (
-    <form action={formAction}>
-      {state.error ? <p role="alert">{state.error}</p> : null}
+    <form action={formAction} className="space-y-4">
+      {state.error ? (
+        <p className="text-sm text-destructive" role="alert">
+          {state.error}
+        </p>
+      ) : null}
 
-      <fieldset disabled={pending || disabled}>
-        <legend>Pick up at</legend>
-
-        {slots.map((slot, index) => (
-          <label key={`${slot.pickup_window_id}-${slot.pickup_date}`}>
-            <input
-              type="radio"
-              name="slot"
-              checked={index === selected}
-              onChange={() => setSelected(index)}
-              required
-            />
-            {label(slot)}
+      <fieldset disabled={pending || disabled} className="space-y-4">
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium flex items-center gap-1.5">
+            <Clock className="w-4 h-4 text-muted-foreground" /> Choose pickup slot
           </label>
-        ))}
+          <div className="grid grid-cols-2 gap-2">
+            {slots.map((slot, index) => (
+              <label key={`${slot.pickup_window_id}-${slot.pickup_date}`} className="cursor-pointer">
+                <input
+                  type="radio"
+                  name="slot"
+                  checked={index === selected}
+                  onChange={() => setSelected(index)}
+                  required
+                  className="sr-only"
+                />
+                <span
+                  className={cn(
+                    "block text-center px-3 py-2 text-sm rounded-xl border transition-colors",
+                    index === selected
+                      ? "border-primary bg-primary/10 text-primary font-medium"
+                      : "border-border bg-card hover:bg-secondary",
+                  )}
+                >
+                  {label(slot)}
+                </span>
+              </label>
+            ))}
+          </div>
+        </div>
 
-        <input
-          type="hidden"
-          name="pickup_window_id"
-          value={chosen?.pickup_window_id ?? ""}
-        />
+        <input type="hidden" name="pickup_window_id" value={chosen?.pickup_window_id ?? ""} />
         <input type="hidden" name="pickup_date" value={chosen?.pickup_date ?? ""} />
 
-        <label htmlFor="note">Anything the cook should know?</label>
-        <textarea id="note" name="note" maxLength={500} rows={3} />
+        <div className="space-y-1.5">
+          <label htmlFor="note" className="text-sm font-medium">
+            Anything the cook should know? <span className="text-muted-foreground font-normal">(optional)</span>
+          </label>
+          <Textarea id="note" name="note" maxLength={500} rows={3} placeholder="Allergies, preferences, or anything else…" />
+        </div>
 
-        <button type="submit">
+        <Button type="submit" className="w-full text-base py-3">
           {pending ? "Taking you to payment…" : "Pay and place order"}
-        </button>
+        </Button>
       </fieldset>
-
-      <p>You&apos;ll be taken to Stripe to pay. Nothing is charged until you confirm.</p>
     </form>
   );
 }

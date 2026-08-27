@@ -45,7 +45,10 @@ const csp = [
   // Stripe and Mapbox both ship their own script bundles.
   `script-src 'self' 'unsafe-inline' ${isDev ? "'unsafe-eval'" : ""} https://js.stripe.com https://api.mapbox.com`,
   `style-src 'self' 'unsafe-inline'`,
-  `img-src 'self' data: blob: https://*.supabase.co https://api.mapbox.com`,
+  // Unsplash is a placeholder photo source for marketing sections until real
+  // vendor/dish photography is uploaded — every other image comes from
+  // Supabase storage or Mapbox tiles.
+  `img-src 'self' data: blob: https://*.supabase.co https://api.mapbox.com https://images.unsplash.com`,
   `font-src 'self' data:`,
   `connect-src ${connectSources}`,
   // Stripe Checkout and Connect onboarding render in frames.
@@ -63,6 +66,13 @@ const csp = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: "*.supabase.co", pathname: "/storage/v1/object/public/**" },
+      { protocol: "https", hostname: "images.unsplash.com" },
+    ],
+  },
 
   async headers() {
     return [

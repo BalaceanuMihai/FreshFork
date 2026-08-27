@@ -10,6 +10,7 @@ export type DishResult = {
   vendor_id: string;
   vendor_handle: string;
   vendor_name: string;
+  vendor_city: string | null;
   cuisine: string | null;
   dish_name: string;
   description: string | null;
@@ -102,7 +103,11 @@ export function parseFilters(params: RawParams): DiscoveryFilters {
     dietary: list(params, "dietary"),
     priceMinCents: bucket?.min ?? null,
     priceMaxCents: bucket?.max ?? null,
-    availability: one(params, "availability"),
+    // The "Any time" radio submits `value=""` rather than omitting the field,
+    // so an empty string here means "no filter," not a literal availability
+    // value — the RPC only recognizes null/'today'/'week' and excludes every
+    // row for anything else, including ''.
+    availability: one(params, "availability") || null,
     pickupWindows: list(params, "pickup"),
     sort: sort === "price" || sort === "newest" ? sort : "distance",
     view: one(params, "view") === "map" ? "map" : "grid",

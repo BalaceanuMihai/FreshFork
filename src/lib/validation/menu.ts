@@ -30,16 +30,19 @@ const priceToCents = z
 export const menuItemSchema = z.object({
   name: z.string().trim().min(2, "Give the dish a name.").max(80),
   section: z.string().trim().min(1).max(40).default("Mains"),
-  description: z.string().trim().max(600).optional().or(z.literal("")),
+  // .nullish() rather than .optional(): FormData.get() returns null (not
+  // undefined) for a field a form doesn't render, and .optional() alone
+  // rejects null as "Invalid input".
+  description: z.string().trim().max(600).nullish(),
   price_cents: priceToCents,
-  photo_path: z.string().trim().optional().or(z.literal("")),
-  prep_note: z.string().trim().max(60).optional().or(z.literal("")),
+  photo_path: z.string().trim().nullish(),
+  prep_note: z.string().trim().max(60).nullish(),
   allergens: z.array(z.enum(ALLERGEN_VALUES as [string, ...string[]])).default([]),
   dietary_tags: z.array(z.enum(DIETARY_VALUES as [string, ...string[]])).default([]),
   quantity_available: z
     .string()
     .trim()
-    .optional()
+    .nullish()
     .transform((raw) => {
       if (!raw) return null;
       const n = Number.parseInt(raw, 10);

@@ -80,6 +80,25 @@ export async function getDiscoveryStats(
   };
 }
 
+/** Distinct cities with at least one live kitchen, for trust-building copy. */
+export async function getLiveCities(limit = 8): Promise<string[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("vendors")
+    .select("pickup_city")
+    .eq("is_live", true)
+    .not("pickup_city", "is", null);
+
+  if (error) {
+    log.error("Live city lookup failed.", { error: error.message });
+    return [];
+  }
+
+  const cities = [...new Set((data ?? []).map((row) => row.pickup_city).filter((c): c is string => Boolean(c)))];
+  return cities.slice(0, limit);
+}
+
 /** Public URLs for a page of results, resolved in one pass. */
 export async function attachPhotoUrls(
   results: DishResult[],

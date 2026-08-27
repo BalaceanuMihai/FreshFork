@@ -1,0 +1,35 @@
+{
+  "id": "evt_qa_checkout_completed_1",
+  "object": "event",
+  "api_version": "2025-01-01",
+  "created": 1787813460,
+  "livemode": false,
+  "pending_webhooks": 0,
+  "request": { "id": null, "idempotency_key": null },
+  "type": "checkout.session.completed",
+  "data": {
+    "object": {
+      "id": "cs_test_a1KNioNXU429r43UEveGTSEun1de3qmc53vLj1Al0YtbSg5QB7MwQUBd6Q",
+      "object": "checkout.session",
+      "amount_subtotal": 4200,
+      "amount_total": 4200,
+      "currency": "eur",
+      "client_reference_id": "90f653ad-f999-4c04-8e5e-805675616232",
+      "customer": null,
+      "customer_details": {
+        "email": "qa.customer1@freshfork-test.dev",
+        "name": "Quinn Tester"
+      },
+      "customer_email": "qa.customer1@freshfork-test.dev",
+      "metadata": {
+        "order_code": "FF-PQXX27",
+        "order_id": "90f653ad-f999-4c04-8e5e-805675616232"
+      },
+      "mode": "payment",
+      "payment_intent": "pi_3U8xAx0TOe7plifg0D0kcE1s",
+      "payment_status": "paid",
+      "status": "complete",
+      "subscription": null
+    }
+  }
+}

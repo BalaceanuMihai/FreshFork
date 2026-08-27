@@ -11,18 +11,20 @@ export const submitReviewSchema = z.object({
     .int()
     .min(1, "Pick a rating from 1 to 5.")
     .max(5, "Pick a rating from 1 to 5."),
+  // .nullish() rather than .optional(): FormData.get() returns null (not
+  // undefined) for a field a form doesn't render, and .optional() alone
+  // rejects null as "Invalid input".
   body: z
     .string()
     .trim()
     .max(2000, "Keep your review under 2000 characters.")
-    .optional()
-    .or(z.literal("")),
+    .nullish(),
 });
 
 export const editReviewSchema = z.object({
   review_id: z.uuid("Unknown review."),
   rating: z.coerce.number().int().min(1).max(5),
-  body: z.string().trim().max(2000).optional().or(z.literal("")),
+  body: z.string().trim().max(2000).nullish(),
 });
 
 export const replyToReviewSchema = z.object({
@@ -37,7 +39,7 @@ export const replyToReviewSchema = z.object({
 export const moderateReviewSchema = z.object({
   review_id: z.uuid("Unknown review."),
   hidden: z.coerce.boolean(),
-  reason: z.string().trim().max(300).optional().or(z.literal("")),
+  reason: z.string().trim().max(300).nullish(),
 });
 
 export const REPORT_SUBJECTS = ["vendor", "menu_item", "review", "order"] as const;
@@ -50,8 +52,7 @@ export const submitReportSchema = z.object({
     .string()
     .trim()
     .max(2000, "Keep the detail under 2000 characters.")
-    .optional()
-    .or(z.literal("")),
+    .nullish(),
 });
 
 export const resolveReportSchema = z.object({
@@ -59,7 +60,7 @@ export const resolveReportSchema = z.object({
   status: z.enum(["open", "reviewing", "resolved", "dismissed"], {
     message: "Unknown status.",
   }),
-  resolution_note: z.string().trim().max(1000).optional().or(z.literal("")),
+  resolution_note: z.string().trim().max(1000).nullish(),
 });
 
 /** Admin-editable marketplace configuration. */

@@ -16,9 +16,11 @@ export default async function EditMenuItemPage(props: PageProps<"/dashboard/vend
   const photoUrl = await publicPhotoUrl(item.photo_path);
 
   return (
-    <div>
-      <h1>Edit {item.name}</h1>
-      <MenuItemForm vendorId={vendor.id} item={item} photoUrl={photoUrl} />
+    <div className="max-w-lg mx-auto px-4 py-6 space-y-5">
+      <h1 className="font-display text-xl font-semibold">Edit {item.name}</h1>
+      <div className="bg-card rounded-2xl border border-border p-5">
+        <MenuItemForm vendorId={vendor.id} item={item} photoUrl={photoUrl} />
+      </div>
     </div>
   );
 }

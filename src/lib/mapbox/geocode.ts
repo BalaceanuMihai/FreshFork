@@ -10,11 +10,15 @@ export type GeocodeResult = {
   city: string | null;
   state: string | null;
   postalCode: string | null;
+  /** ISO 3166-1 alpha-2, e.g. "DE". Feeds `currencyForCountry` and the Stripe Connect account country. */
+  countryCode: string | null;
   lat: number;
   lng: number;
 };
 
-type MapboxContext = { [key: string]: { name?: string } | undefined };
+type MapboxContext = {
+  [key: string]: ({ name?: string; country_code?: string } | undefined);
+};
 
 type MapboxFeature = {
   properties?: {
@@ -73,6 +77,7 @@ export async function forwardGeocode(
         city: context.place?.name ?? null,
         state: context.region?.name ?? null,
         postalCode: context.postcode?.name ?? null,
+        countryCode: context.country?.country_code?.toUpperCase() ?? null,
         lat,
         lng,
       },

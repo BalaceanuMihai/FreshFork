@@ -12,10 +12,14 @@ export default async function WindowsStepPage() {
   const windows = await getPickupWindows(vendor.id);
 
   return (
-    <div>
-      <h1>When can people collect?</h1>
-      <p>Set the weekly rhythm you actually cook to.</p>
-      <WindowsForm windows={windows} />
+    <div className="space-y-5">
+      <div>
+        <h1 className="font-display text-xl font-semibold">When can people collect?</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">Set the weekly rhythm you actually cook to.</p>
+      </div>
+      <div className="bg-card rounded-2xl border border-border p-5">
+        <WindowsForm windows={windows} />
+      </div>
     </div>
   );
 }

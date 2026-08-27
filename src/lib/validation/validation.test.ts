@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { menuItemSchema } from "@/lib/validation/menu";
 import { slugify } from "@/lib/validation/vendor";
-import { checkoutSchema, refundOrderSchema } from "@/lib/validation/order";
+import { checkoutSchema, refundOrderSchema, vendorTransitionSchema } from "@/lib/validation/order";
 import { submitReviewSchema } from "@/lib/validation/community";
 
 /**
@@ -126,6 +126,51 @@ describe("refundOrderSchema", () => {
     expect(refundOrderSchema.safeParse({ order_id: order, amount: "-5" }).success).toBe(
       false,
     );
+  });
+});
+
+describe("vendorTransitionSchema", () => {
+  const orderId = "0f1d4d3a-4a0e-4f0e-9b0a-2a5b6c7d8e9f";
+
+  it("accepts a plain accept/ready/complete submission with no note field at all", () => {
+    // The actual bug: OrderActions.tsx's accept/ready/complete forms carry
+    // only order_id and next — no `note` input exists in the DOM. Reading
+    // that with FormData.get("note") returns `null`, not `undefined`, and a
+    // schema written as `.optional()` (T | undefined) rejects null as
+    // "Invalid input" — which is exactly what happened: every click of
+    // "Accept order" failed until this field became `.nullish()`.
+    const formData = new FormData();
+    formData.set("order_id", orderId);
+    formData.set("next", "accepted");
+    // Deliberately not calling formData.set("note", ...) — this is the
+    // no-note-field-in-the-DOM case, not an empty-string case.
+
+    const result = vendorTransitionSchema.safeParse({
+      order_id: formData.get("order_id"),
+      next: formData.get("next"),
+      note: formData.get("note"),
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("still accepts an explicit note, for the decline form", () => {
+    const result = vendorTransitionSchema.safeParse({
+      order_id: orderId,
+      next: "rejected",
+      note: "Out of the main ingredient today.",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects a transition outside the vendor's allowed set", () => {
+    expect(
+      vendorTransitionSchema.safeParse({
+        order_id: orderId,
+        next: "pending_payment",
+        note: null,
+      }).success,
+    ).toBe(false);
   });
 });
 

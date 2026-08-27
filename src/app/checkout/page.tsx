@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ChefHat, Lock, ShoppingBag } from "lucide-react";
 
 import { requireViewer } from "@/lib/auth";
 import { getCart } from "@/lib/cart";
@@ -6,6 +7,9 @@ import { getPickupSlots } from "@/lib/orders";
 import { formatPrice } from "@/lib/format";
 import { features } from "@/lib/env";
 import { CheckoutForm } from "./CheckoutForm";
+import { BasketLines } from "./BasketLines";
+import { EmptyState } from "@/components/ui/empty-state";
+import { buttonClasses } from "@/components/ui/button";
 
 export const metadata = { title: "Checkout · FreshFork" };
 
@@ -23,78 +27,91 @@ export default async function CheckoutPage() {
 
   if (!cart.vendor || cart.lines.length === 0) {
     return (
-      <div>
-        <h1>Your basket is empty</h1>
-        <p>Find something to eat and it&apos;ll show up here.</p>
-        <Link href="/browse">Browse kitchens</Link>
+      <div className="max-w-md mx-auto px-4 py-8">
+        <h1 className="font-display text-2xl font-semibold mb-6">Your basket</h1>
+        <EmptyState
+          icon={ShoppingBag}
+          title="Your basket is empty"
+          body="Find something to eat and it'll show up here."
+          action={
+            <Link href="/browse" className={buttonClasses("primary")}>
+              Browse kitchens
+            </Link>
+          }
+        />
       </div>
     );
   }
 
   if (!features.ordering) {
     return (
-      <div>
-        <h1>Checkout</h1>
-        <p role="alert">
-          Ordering is unavailable right now — payments aren&apos;t configured on this
-          deployment.
+      <div className="max-w-md mx-auto px-4 py-8 space-y-4">
+        <h1 className="font-display text-2xl font-semibold">Checkout</h1>
+        <p className="text-sm text-destructive" role="alert">
+          Ordering is unavailable right now — payments aren&apos;t configured on this deployment.
         </p>
       </div>
     );
   }
 
-  // Narrowed above, but hoisted so TypeScript can see it inside the JSX.
   const vendor = cart.vendor;
   const slots = await getPickupSlots(vendor.id);
 
   return (
-    <div>
-      <h1>Checkout</h1>
-      <p>
-        Picking up from{" "}
-        <Link href={`/vendor/${vendor.handle}`}>{vendor.business_name}</Link>
-        {vendor.pickup_address_line
-          ? ` · ${vendor.pickup_address_line}${vendor.pickup_city ? `, ${vendor.pickup_city}` : ""}`
-          : null}
-      </p>
+    <div className="max-w-md mx-auto px-4 py-6 space-y-5">
+      <h1 className="font-display text-2xl font-semibold">Your basket</h1>
 
-      <h2>Your order</h2>
-      <ul>
-        {cart.lines.map((line) => (
-          <li key={line.menuItem.id}>
-            {line.menuItem.name} × {line.quantity} — {formatPrice(line.lineTotalCents, vendor.currency)}
-            {line.problem ? <strong role="alert"> · {line.problem}</strong> : null}
-          </li>
-        ))}
-      </ul>
+      <div className="flex items-center gap-2 text-sm text-muted-foreground bg-secondary rounded-lg px-3 py-2">
+        <ChefHat className="w-4 h-4 shrink-0" />
+        <span>
+          Ordering from{" "}
+          <Link href={`/vendor/${vendor.handle}`} className="font-medium text-foreground hover:underline">
+            {vendor.business_name}
+          </Link>
+          {vendor.pickup_city ? ` in ${vendor.pickup_city}` : ""}
+        </span>
+      </div>
 
-      <dl>
-        <dt>Subtotal</dt>
-        <dd>{formatPrice(cart.fees.subtotalCents, vendor.currency)}</dd>
-        <dt>Service fee</dt>
-        <dd>
-          {cart.fees.serviceFeeCents === 0
-            ? "Waived with Plus"
-            : formatPrice(cart.fees.serviceFeeCents, vendor.currency)}
-        </dd>
-        <dt>Total</dt>
-        <dd>{formatPrice(cart.fees.totalCents, vendor.currency)}</dd>
-      </dl>
+      <BasketLines lines={cart.lines} currency={vendor.currency} />
 
       {cart.hasProblems ? (
-        <p role="alert">
-          Something in your basket changed. Adjust it before checking out.{" "}
-          <Link href={`/vendor/${vendor.handle}`}>Edit your basket</Link>
-        </p>
+        <div className="bg-destructive/10 border border-destructive/20 text-destructive rounded-xl px-4 py-3 text-sm" role="alert">
+          Something in your basket changed.{" "}
+          <Link href={`/vendor/${vendor.handle}`} className="underline font-medium">
+            Edit your basket
+          </Link>
+          .
+        </div>
       ) : null}
 
+      <div className="bg-secondary rounded-xl p-4 space-y-2 text-sm">
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Subtotal</span>
+          <span>{formatPrice(cart.fees.subtotalCents, vendor.currency)}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Service fee</span>
+          <span className={cart.fees.serviceFeeCents === 0 ? "text-green-700 font-medium" : ""}>
+            {cart.fees.serviceFeeCents === 0 ? "Waived with Plus" : formatPrice(cart.fees.serviceFeeCents, vendor.currency)}
+          </span>
+        </div>
+        <div className="flex justify-between font-semibold border-t border-border pt-2">
+          <span>Total</span>
+          <span>{formatPrice(cart.fees.totalCents, vendor.currency)}</span>
+        </div>
+      </div>
+
       {slots.length === 0 ? (
-        <p role="alert">
+        <div className="bg-destructive/10 border border-destructive/20 text-destructive rounded-xl px-4 py-3 text-sm" role="alert">
           This kitchen has no pickup times available at the moment. Try again later.
-        </p>
+        </div>
       ) : (
         <CheckoutForm slots={slots} disabled={cart.hasProblems} timezone={vendor.timezone} />
       )}
+
+      <p className="text-xs text-center text-muted-foreground flex items-center justify-center gap-1.5">
+        <Lock className="w-3 h-3" /> You&apos;ll be taken to Stripe to pay. Nothing is charged until you confirm.
+      </p>
     </div>
   );
 }
