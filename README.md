@@ -17,8 +17,6 @@ North star: [shef.com](https://shef.com) — warm, trustworthy, food-photography
 - **Tests** — Vitest (pure logic) + pgTAP (RLS and order lifecycle) — _wired_
 - **Hosting** — Vercel
 
-See [`.claude/plans/i-want-to-build-soft-sonnet.md`](.claude/plans/i-want-to-build-soft-sonnet.md) for the full build plan.
-
 ## Getting started
 
 ```bash
@@ -128,11 +126,9 @@ Phase 0 — scaffold + tokens · **done**
 Phase 1 — Supabase Auth + roles · **done**
 Phase 2 — Vendor onboarding + menu CRUD + admin verification · **done**
 Phase 3 — Customer discovery + Mapbox · **done**
-Phase 4 — Ordering + Stripe charges + email receipts · **backend done, UI is functional but unstyled**
-Phase 5 — Reviews + reports · **backend done, UI pending**
-Phase 6 — Polish + launch prep · **← you are here**
-
-Full detail in the build plan linked above.
+Phase 4 — Ordering + Stripe charges + email receipts · **done**
+Phase 5 — Reviews + reports · **done**
+Phase 6 — Ordering UI, reviews/reports UI, multi-currency, pre-production QA · **done — ← you are here**
 
 ## Backend architecture
 
@@ -280,7 +276,7 @@ policies and security-definer triggers — code no compiler checks, that fails a
 runtime, in production, silently, as data leakage. Every policy is asserted in
 both directions: the allow **and** the deny.
 
-Current state: **93 unit tests and 62 pgTAP assertions, all passing** — 24 in
+Current state: **101 unit tests and 62 pgTAP assertions, all passing** — 24 in
 `01_rls_identity.sql` (role clamping, profile and vendor isolation, the
 `is_live` double gate, storage-path ownership) and 28 in
 `02_order_lifecycle.sql` (pricing from the database, oversell prevention,
