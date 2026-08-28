@@ -1,0 +1,76 @@
+name: Scheduled maintenance
+
+# Drives POST /api/cron/maintenance, which returns stock from abandoned
+# checkouts, deletes storage objects whose owning row is gone, and prunes
+# rate-limit rows.
+#
+# Not Vercel Cron, for two independent reasons: the route is POST-only and
+# Vercel Cron issues GET, and the Hobby plan caps cron at once per day while
+# this wants every 5-15 minutes. GitHub Actions can do both.
+#
+# The traffic doubles as a keep-alive — a Supabase free-tier project pauses
+# after a week of inactivity, and a paused database takes the app with it.
+#
+# Needs two repository secrets:
+#   CRON_SECRET  — must match the value set in Vercel
+#   APP_URL      — e.g. https://freshfork.vercel.app (no trailing slash)
+
+on:
+  schedule:
+    # Every 10 minutes. GitHub's floor is 5, and scheduled runs are best-effort
+    # — under load they are delayed or dropped, which is fine for this job.
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+# A run that is still going when the next one fires means the endpoint is
+# wedged; queueing more would not help.
+concurrency:
+  group: maintenance
+  cancel-in-progress: false
+
+jobs:
+  sweep:
+    name: Sweep
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST /api/cron/maintenance
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$APP_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "::error::APP_URL and CRON_SECRET repository secrets must both be set."
+            exit 1
+          fi
+
+          # Split body from status so a failure can print what the route said.
+          # --fail is deliberately not used: it suppresses the body, and the
+          # body is the only place the three job counts are reported.
+          response=$(curl --silent --show-error --max-time 300 \
+            --write-out '\n%{http_code}' \
+            --request POST \
+            --header "Authorization: Bearer $CRON_SECRET" \
+            "$APP_URL/api/cron/maintenance")
+
+          status=$(printf '%s' "$response" | tail -n 1)
+          body=$(printf '%s' "$response" | sed '$d')
+
+          echo "status: $status"
+          echo "body:   $body"
+
+          if [ "$status" != "200" ]; then
+            case "$status" in
+              401) echo "::error::401 — CRON_SECRET is either unset on the server or does not match this one." ;;
+              405) echo "::error::405 — the route did not accept POST. Check it still exports POST." ;;
+              *)   echo "::error::Maintenance sweep failed with status $status." ;;
+            esac
+            exit 1
+          fi
+
+          # Each of the three jobs catches its own errors and reports "failed"
+          # in the body rather than failing the request, so a 200 alone is not
+          # proof the sweep worked.
+          if printf '%s' "$body" | grep -q '"failed"'; then
+            echo "::error::Sweep returned 200 but at least one job reported \"failed\" — check Sentry."
+            exit 1
+          fi

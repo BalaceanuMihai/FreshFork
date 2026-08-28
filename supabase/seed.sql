@@ -12,12 +12,14 @@
 --   * addresses inside the geocoder's bounding box, so autocomplete can
 --     actually find them
 --
--- Every account shares one password so they can be signed in as:
+-- Every account shares one password so they can be signed in as. Before
+-- running this, replace the SET_A_PASSWORD_BEFORE_RUNNING placeholder below
+-- with a real value — and do not commit that value back to this file.
 --
---   FreshFork!Pilot2026
---
--- That is only acceptable because every address is @freshfork.test and this is
--- a development project. Never load this into anything public.
+-- A shared password is only acceptable because every address is
+-- @freshfork.test. If the deployment this points at is reachable from the
+-- internet, treat these as real credentials: pick something unguessable, keep
+-- it out of the repo, and never give any of them the `admin` role.
 --
 -- To remove it all again:
 --
@@ -33,7 +35,7 @@ insert into auth.users (
 )
 select
   '00000000-0000-0000-0000-000000000000', p.id, 'authenticated', 'authenticated',
-  p.email, extensions.crypt('FreshFork!Pilot2026', extensions.gen_salt('bf')),
+  p.email, extensions.crypt('SET_A_PASSWORD_BEFORE_RUNNING', extensions.gen_salt('bf')),
   now(), now(), now(),
   '{"provider":"email","providers":["email"]}',
   jsonb_build_object('role', p.role, 'full_name', p.full_name)

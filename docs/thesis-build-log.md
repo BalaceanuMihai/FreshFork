@@ -318,10 +318,14 @@ confirmed Europe was the intended market.
   first — see Section 2 gap noted below): 4 new vendor accounts (Athens,
   Dublin, Stockholm, Rome) + 4 new customer accounts, each with menus and
   pickup windows; `search_menu_items()` updated to return a `currency` column
-- Set a single known password (`FreshFork!Pilot2026`) on all
+- Set a single known password (value redacted; it was committed to the repo at
+  the time, and was rotated on 2026-08-28 before public hosting) on all
   `@freshfork.test` accounts, both the pre-existing ones and the newly
   created ones, via a direct `UPDATE` on `auth.users` (not a migration file)
-  so they could actually be signed in as during testing
+  so they could actually be signed in as during testing. Because that `UPDATE`
+  matched on the email domain rather than on the seed's account list, it also
+  caught `pilot-admin@freshfork.test` — giving a publicly-documented password
+  to an `admin` account, which is the defect the 2026-08-28 rotation fixed.
 - App-layer currency work: `formatPrice()` rewritten to take a currency
   parameter and use `Intl.NumberFormat`; email template `money()` helper
   updated the same way; every UI call site of `formatPrice` updated to pass

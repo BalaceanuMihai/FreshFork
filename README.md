@@ -42,6 +42,45 @@ Stripe webhooks in local dev:
 stripe listen --forward-to localhost:3000/api/webhooks/stripe
 ```
 
+## Deploying
+
+Vercel, zero-config — the framework's own platform, no `vercel.json` and no
+`output: "standalone"` needed. Import the repo, then:
+
+**1. Set every environment variable before the first build.** Two of them are
+read at *build* time, not runtime, and both fail silently rather than erroring:
+
+- `NEXT_PUBLIC_SUPABASE_URL` — `next.config.ts` derives the CSP `connect-src`
+  from it and freezes it into the response headers at build time. Missing at
+  build ⇒ the shipped CSP has no Supabase origin ⇒ every browser-side Supabase
+  call is blocked at runtime, even with the variable correctly set. A build
+  cannot be promoted between Supabase projects.
+- `NEXT_PUBLIC_APP_URL` — otherwise `src/lib/env.ts` bakes in
+  `http://localhost:3000`, which then appears in Stripe redirect URLs, signup
+  confirmation links and every transactional email.
+
+**2. Set the function region to Frankfurt (`fra1`).** The default is `iad1`
+(US East); the database is in `eu-central-1`.
+
+**3. Point Supabase Auth at the deployment.** Authentication → URL
+Configuration: **Site URL** = the production origin, and add
+`<origin>/auth/callback` to **Redirect URLs**. Without it Supabase rejects the
+`emailRedirectTo` and signup confirmation dead-ends at
+`/signin?error=missing_code`.
+
+**4. Create the Stripe webhook endpoint** at `<origin>/api/webhooks/stripe`,
+subscribe to the `account.updated`, `customer.subscription.*`,
+`checkout.session.*` and `charge.*` families, and set the resulting `whsec_…`
+as `STRIPE_WEBHOOK_SECRET`. Redeploy so it takes effect.
+
+**5. Restrict the Mapbox token** to the production origin — it ships in the
+browser bundle.
+
+**6. Schedule maintenance.** `.github/workflows/maintenance.yml` POSTs to
+`/api/cron/maintenance` every 10 minutes; set `APP_URL` and `CRON_SECRET` as
+repository secrets. Vercel Cron is not usable here — it issues GET while the
+route is POST-only, and the Hobby plan caps cron at once per day.
+
 ### Making someone an admin
 
 There is deliberately no UI for this: signup clamps the role to `customer` or
@@ -70,9 +109,14 @@ above.
 for clicking through discovery without completing onboarding by hand. Paste it
 into the SQL editor; the header comment says how to remove it again.
 
-Every pilot account shares one password — **`FreshFork!Pilot2026`** — so any of
-them can be signed in as. That is only acceptable because every address is
-`@freshfork.test` and this is a development project.
+Every pilot account shares one password, which is **deliberately not recorded
+in this repository** — ask the maintainer for it. `seed.sql` carries a
+`SET_A_PASSWORD_BEFORE_RUNNING` placeholder you replace at run time.
+
+None of these accounts has the `admin` role, and none should be given it: a
+shared password on a publicly reachable deployment is a demo convenience, not
+a credential, and admin can change the platform fee that every future order is
+charged. Grant admin by hand to a real account instead (see above).
 
 | Role | Sign in as | Kitchen | City | Currency |
 | --- | --- | --- | --- | --- |
@@ -89,7 +133,6 @@ them can be signed in as. That is only acceptable because every address is
 | Cook | `pilot-lukas@freshfork.test` | Nordic | Stockholm | SEK |
 | Cook | `pilot-giulia@freshfork.test` | Italian | Roma | EUR |
 | Customer | `pilot-lea@freshfork.test`, `pilot-miguel@freshfork.test`, `pilot-katarzyna@freshfork.test`, `pilot-andrei@freshfork.test`, `pilot-dana@freshfork.test`, `pilot-marcus@freshfork.test`, `pilot-sam@freshfork.test`, `pilot-yuki@freshfork.test` | — | — | — |
-| Admin | `pilot-admin@freshfork.test` | — | — | — |
 
 Discovery takes coordinates, so search as if standing in a given city with
 `/browse?lat=..&lng=..&loc=..`:
